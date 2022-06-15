@@ -15,11 +15,15 @@ typedef uint64_t u64;
 typedef ssize_t isize;
 typedef size_t usize;
 
-typedef void * vptr;
-typedef intptr_t iptr;
-
 typedef unsigned char uchar;
 typedef wchar_t wchar;
+
+typedef void * vptr;
+typedef const void * cvptr;
+typedef intptr_t iptr;
+
+typedef const char * cstr;
+typedef const wchar * cwstr;
 
 typedef float f32;
 typedef double f64;

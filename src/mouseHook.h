@@ -3,8 +3,10 @@
 
 #include "winapi.h"
 
-LRESULT CALLBACK llmh_mouseHookProc(int nCode, WPARAM wp, LPARAM lp);
-HHOOK llmh_setHook();
-void llmh_removeHook();
+#define MMH_MOUSEHOOK_MSG WM_USER
+
+LRESULT CALLBACK mmh_mouseHookProc(int nCode, WPARAM wp, LPARAM lp);
+HHOOK mmh_setHook(HINSTANCE hInst, HWND hwnd);
+void mmh_removeHook(void);
 
 #endif

@@ -7,9 +7,10 @@
 typedef struct msdata
 {
 	bool init;
-	
+
 	HHOOK mHook;
-	
+	HWND hwnd;
+
 } msdata_t;
 
 bool ms_init(msdata_t * restrict This, int argc, char ** argv);

@@ -21,4 +21,8 @@
 #include <assert.h>
 #include <stdbool.h>
 
+bool ms_regClass(const wchar_t * restrict className, WNDPROC winProc);
+bool ms_regClassBg(const wchar_t * restrict className, WNDPROC winProc, COLORREF rgbColor);
+
+
 #endif

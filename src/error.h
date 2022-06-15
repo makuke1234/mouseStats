@@ -6,6 +6,8 @@
 
 #include <stdarg.h>
 
+#define MAX_EMSG 2048
+
 #ifdef _DEBUG
 	#define ePrint(...) eCon(__VA_ARGS__)
 #else
