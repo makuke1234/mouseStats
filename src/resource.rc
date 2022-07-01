@@ -1,2 +1,3 @@
 #include "resource.h"
 
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "xpstyles.manifest"

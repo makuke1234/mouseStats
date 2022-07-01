@@ -7,4 +7,7 @@
 #define MOUSE_STATS_TITLE_ASCII "mouseStats"
 #define MOUSE_STATS_TITLE (L"" MOUSE_STATS_TITLE_ASCII)
 
+
+#define IDM_EXIT 101
+
 #endif

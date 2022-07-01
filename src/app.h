@@ -7,9 +7,16 @@
 typedef struct msdata
 {
 	bool init;
+	int dpi;
 
 	HHOOK mHook;
 	HWND hwnd;
+
+	RECT titleRect;
+	HBRUSH titleBrush, titleBrushInactive;
+	HFONT titleTextFont;
+	bool resizeEnable;
+	bool isActive;
 
 } msdata_t;
 

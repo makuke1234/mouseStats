@@ -12,6 +12,9 @@
 #endif
 
 #include <Windows.h>
+#include <windowsx.h>
+#include <CommCtrl.h>
+#include <dwmapi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,8 +24,48 @@
 #include <assert.h>
 #include <stdbool.h>
 
+#define msWS_WINDOWED         (WS_OVERLAPPEDWINDOW | WS_THICKFRAME | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
+#define msWS_AERO_BORDERLESS  (WS_POPUP            | WS_THICKFRAME | WS_CAPTION | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX)
+#define msWS_BASIC_BORDERLESS (WS_POPUP            | WS_THICKFRAME              | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX)
+
+#define msWS_BORDERLESS (ms_compositionEnabled() ? msWS_AERO_BORDERLESS : msWS_BASIC_BORDERLESS)
+
 bool ms_regClass(const wchar_t * restrict className, WNDPROC winProc);
 bool ms_regClassBg(const wchar_t * restrict className, WNDPROC winProc, COLORREF rgbColor);
+bool ms_compositionEnabled(void);
+bool ms_isMaximized(HWND hwnd);
+bool ms_isActive(HWND hwnd);
+UINT ms_dpi(HWND hwnd);
+
+typedef UINT (WINAPI * pfnGetDpiForSystem_t)(void);
+typedef UINT (WINAPI * pfnGetDpiForWindow_t)(HWND hwnd);
+typedef int  (WINAPI * pfnDrawShadowText_t)(
+	HDC hdc,
+	LPCWSTR pszText,
+	UINT cch,
+	RECT * prc,
+	DWORD dwFlags,
+	COLORREF crText,
+	COLORREF crShadow,
+	int ixOffset,
+	int iyOffset
+);
+
+bool ms_initSymbols(void);
+
+UINT ms_GetDpiForWindow(HWND hwnd);
+UINT ms_GetDpiForSystem(void);
+int ms_DrawShadowText(
+	HDC hdc,
+	LPCWSTR pszText,
+	UINT cch,
+	RECT * prc,
+	DWORD dwFlags,
+	COLORREF crText,
+	COLORREF crShadow,
+	int ixOffset,
+	int iyOffset
+);
 
 
 #endif

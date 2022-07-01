@@ -7,14 +7,28 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 {
 	assert(This != NULL);
 	assert(argc > 0);
-	assert(argv != NULL);
-	assert(argv[0] != NULL);
+	//assert(argv != NULL);
+	//assert(argv[0] != NULL);
 
 	*This = (msdata_t){
-		.init  = false,
-		.mHook = NULL,
-		.hwnd  = NULL
+		.init         = false,
+		.dpi          = USER_DEFAULT_SCREEN_DPI,
+		.mHook        = NULL,
+		.hwnd         = NULL,
+		.titleRect    = { 0, 0, 0, 0 },
+		.titleBrush   = NULL,
+		.titleBrushInactive = NULL,
+		.titleTextFont = NULL,
+		.resizeEnable = true
 	};
+
+	SetProcessDPIAware();
+
+	INITCOMMONCONTROLSEX icex = { 0 };
+	icex.dwSize = sizeof icex;
+	icex.dwICC  = ICC_WIN95_CLASSES;
+
+	InitCommonControlsEx(&icex);
 
 	if (!ms_regClass(MOUSE_STATS_CLASS, &mgui_winProc))
 	{
@@ -25,7 +39,7 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 	This->hwnd = CreateWindowExW(
 		0,
 		MOUSE_STATS_CLASS, MOUSE_STATS_TITLE,
-		WS_OVERLAPPEDWINDOW,
+		msWS_BORDERLESS,
 		CW_USEDEFAULT, CW_USEDEFAULT, 400, 300,
 		NULL, NULL, GetModuleHandleW(NULL), This
 	);
@@ -34,6 +48,15 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 		ePrint("Error creating window!");
 		return false;
 	}
+
+	
+	if (ms_compositionEnabled())
+	{
+		static const MARGINS shadow_state = { 1, 1, 1, 1 };
+    	DwmExtendFrameIntoClientArea(This->hwnd, &shadow_state);
+	}
+	
+	SetWindowPos(This->hwnd, NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE);
 
 	This->mHook = mmh_setHook(GetModuleHandleW(NULL), This->hwnd);
 	if (This->mHook == NULL)
