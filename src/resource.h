@@ -9,5 +9,6 @@
 
 
 #define IDM_EXIT 101
+#define IDM_MIN  102
 
 #endif

@@ -17,6 +17,10 @@ typedef struct msdata
 	HFONT titleTextFont;
 	bool resizeEnable;
 	bool isActive;
+	bool rclick;
+
+	HMENU contextMenu, sysMenu;
+	HWND closeBtn, minBtn;
 
 } msdata_t;
 

@@ -19,7 +19,14 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 		.titleBrush   = NULL,
 		.titleBrushInactive = NULL,
 		.titleTextFont = NULL,
-		.resizeEnable = true
+		.resizeEnable = true,
+		.isActive = true,
+		.rclick = false,
+
+		.contextMenu = NULL,
+		.sysMenu = NULL,
+		.closeBtn = NULL,
+		.minBtn = NULL
 	};
 
 	SetProcessDPIAware();
@@ -40,7 +47,8 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 		0,
 		MOUSE_STATS_CLASS, MOUSE_STATS_TITLE,
 		msWS_BORDERLESS,
-		CW_USEDEFAULT, CW_USEDEFAULT, 400, 300,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		400, 300,
 		NULL, NULL, GetModuleHandleW(NULL), This
 	);
 	if (This->hwnd == NULL)

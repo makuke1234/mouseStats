@@ -36,11 +36,28 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 	case WM_COMMAND:
 		mgui_handleCommand(hwnd, wp);
 		break;
-	case WM_RBUTTONUP:
-	case WM_CONTEXTMENU:
-		/* Allow window dragging from any point */
-		mgui_handleContextMenu(hwnd, lp);
+	case WM_NCRBUTTONDOWN:
+		This->rclick = true;
 		break;
+	case WM_RBUTTONUP:
+		This->rclick = false;
+		/* fall through */
+	case WM_CONTEXTMENU:
+	{
+		RECT window;
+		POINT cursor;
+		if (!GetWindowRect(hwnd, &window) || !GetCursorPos(&cursor) ||
+			!mgui_captionHit(&window, cursor, &This->titleRect))
+		{
+			mgui_handleContextMenu(hwnd, This->contextMenu, lp, false);
+		}
+		else
+		{
+			mgui_handleContextMenu(hwnd, This->sysMenu, lp, true);
+		}
+
+		break;
+	}
 	case WM_PAINT:
 	{
 		PAINTSTRUCT ps;
@@ -74,6 +91,13 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		InvalidateRect(hwnd, &This->titleRect, FALSE);
 		break;
 	case WM_SIZE:
+		{
+			// Move button
+			RECT rc;
+			GetClientRect(hwnd, &rc);
+			SetWindowPos(This->closeBtn, NULL, rc.right - MulDiv(40, This->dpi, 96), 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+			SetWindowPos(This->minBtn,   NULL, rc.right - MulDiv(80, This->dpi, 96), 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+		}
 		InvalidateRect(hwnd, NULL, FALSE);
 		break;
 	case WM_NCCALCSIZE:
@@ -87,7 +111,8 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		def = true;
 		break;
 	case WM_NCHITTEST:
-		return mgui_hitTest(hwnd, (POINT){ .x = GET_X_LPARAM(lp), .y = GET_Y_LPARAM(lp) }, &This->titleRect, This->resizeEnable);
+		//InvalidateRect(This->closeBtn, NULL, FALSE);
+		return mgui_hitTest(hwnd, (POINT){ .x = GET_X_LPARAM(lp), .y = GET_Y_LPARAM(lp) }, &This->titleRect, This->resizeEnable, This->rclick);
 	case WM_NCACTIVATE:
 		if (!ms_compositionEnabled())
 		{
@@ -117,11 +142,44 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 			L"Segoe UI"
 		);
 
-		HMENU sysmenu = GetSystemMenu(hwnd, FALSE);
-		if (sysmenu != NULL)
+		This->sysMenu = GetSystemMenu(hwnd, FALSE);
+		if (This->sysMenu != NULL)
 		{
-			AppendMenuW(sysmenu, MF_STRING, IDM_EXIT, L"&nipi-tiri");
+			AppendMenuW(This->sysMenu, MF_STRING, IDM_EXIT, L"&nipi-tiri");
 		}
+
+		This->contextMenu = CreatePopupMenu();
+		if (This->contextMenu != NULL)
+		{
+			AppendMenuW(This->contextMenu, MF_SEPARATOR, 0, NULL);
+			AppendMenuW(This->contextMenu, MF_STRING | MF_DEFAULT, IDM_EXIT, L"&Close");
+		}
+
+		const int sz = MulDiv(40, This->dpi, 96);
+		RECT rc;
+		GetClientRect(hwnd, &rc);
+		This->closeBtn = mgui_btnCreate(
+			0,
+			L"X",
+			WS_CHILD | WS_VISIBLE,
+			rc.right - sz, 0,
+			sz, MulDiv(30, This->dpi, 96),
+			hwnd,
+			(HMENU)IDM_EXIT,
+			(HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE),
+			RGB(215, 21, 38)
+		);
+		This->minBtn = mgui_btnCreate(
+			0,
+			L"_",
+			WS_CHILD | WS_VISIBLE,
+			rc.right - 2 * sz, 0,
+			sz, MulDiv(30, This->dpi, 96),
+			hwnd,
+			(HMENU)IDM_MIN,
+			(HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE),
+			RGB(0, 162, 232)
+		);
 
 		break;
 	default:
@@ -136,7 +194,7 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 	return 0;
 }
 
-LRESULT mgui_hitTest(HWND hwnd, POINT cursor, RECT * restrict titleRect, bool borderless_resize)
+LRESULT mgui_hitTest(HWND hwnd, POINT cursor, const RECT * restrict titleRect, bool borderless_resize, bool rclick)
 {
 	const POINT border = {
 		.x = GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER),
@@ -149,9 +207,7 @@ LRESULT mgui_hitTest(HWND hwnd, POINT cursor, RECT * restrict titleRect, bool bo
 		return HTNOWHERE;
 	}
 
-	const LRESULT drag = (cursor.x >= (window.left + titleRect->left)) && (cursor.x <= (window.left + titleRect->right)) &&
-						 (cursor.y >= (window.top  + titleRect->top))  && (cursor.y <= (window.top  + titleRect->bottom)) ?
-						 HTCAPTION : HTCLIENT;
+	const LRESULT drag = mgui_captionHit(&window, cursor, titleRect) ? (rclick ? HTCLIENT : HTCAPTION) : HTCLIENT;
 
 
 	enum regionMask
@@ -183,6 +239,11 @@ LRESULT mgui_hitTest(HWND hwnd, POINT cursor, RECT * restrict titleRect, bool bo
         default            : return HTNOWHERE;
     }
 
+}
+bool mgui_captionHit(const RECT * restrict window, POINT cursor, const RECT * restrict titleRect)
+{
+	return (cursor.x >= (window->left + titleRect->left)) && (cursor.x <= (window->left + titleRect->right)) &&
+		   (cursor.y >= (window->top  + titleRect->top))  && (cursor.y <= (window->top  + titleRect->bottom));
 }
 void mgui_adjustMaximizedClientRect(HWND window, RECT * restrict rect)
 {
@@ -221,24 +282,26 @@ void mgui_calcTitleRect(HWND hwnd, RECT * restrict rect, int dpi)
 	rect->bottom = rect->top + MulDiv(30, dpi, 96);
 }
 
-void mgui_handleContextMenu(HWND hwnd, LPARAM lp)
+void mgui_handleContextMenu(HWND hwnd, HMENU hmenu, LPARAM lp, bool sysmenu)
 {
-	HMENU hmenu = CreatePopupMenu();
-
 	POINT p = { .x = GET_X_LPARAM(lp), .y = GET_Y_LPARAM(lp) };
 	ClientToScreen(hwnd, &p);
 
 	// Append to menu
-	AppendMenuW(hmenu, MF_SEPARATOR, 0, NULL);
-	AppendMenuW(hmenu, MF_STRING | MF_DEFAULT, IDM_EXIT, L"&Close");
 
-	TrackPopupMenu(hmenu, TPM_RIGHTBUTTON, p.x, p.y, 0, hwnd, NULL);
-	DestroyMenu(hmenu);
+	const int cmd = TrackPopupMenu(hmenu, TPM_RIGHTBUTTON | (sysmenu ? TPM_RETURNCMD : 0), p.x, p.y, 0, hwnd, NULL);
+	if (sysmenu && cmd)
+	{
+		SendMessageW(hwnd, WM_SYSCOMMAND, (WPARAM)cmd, 0);
+	}
 }
 void mgui_handleCommand(HWND hwnd, WPARAM wp)
 {
 	switch (LOWORD(wp))
 	{
+	case IDM_MIN:
+		ShowWindow(hwnd, SW_MINIMIZE);
+		break;
 	case IDM_EXIT:
 		SendMessageW(hwnd, WM_CLOSE, 0, 0);
 		break;
@@ -256,4 +319,240 @@ bool mgui_handleSystemMenu(HWND hwnd, WPARAM wp)
 	}
 
 	return true;
+}
+
+static inline uint8_t mgui_cClip(uint32_t val)
+{
+	return (uint8_t)((val > 255) ? 255 : val);
+}
+
+#define DELOBJ_COND(obj) ((obj != NULL) ? DeleteObject(obj) : (0))
+
+static inline void mgui_btnCreateCleanup(
+	mgui_btnBmps_t * bmps,
+	HBRUSH nb,
+	HBRUSH pb,
+	HBRUSH hb,
+	HDC dc,
+	HBITMAP hbn,
+	HBITMAP hbp,
+	HBITMAP hbh
+)
+{
+	free(bmps);
+	DELOBJ_COND(nb);
+	DELOBJ_COND(pb);
+	DELOBJ_COND(hb);
+
+	if (dc != NULL)
+	{
+		DeleteDC(dc);
+	}
+
+	DELOBJ_COND(hbn);
+	DELOBJ_COND(hbp);
+	DELOBJ_COND(hbh);
+}
+#undef DELOBJ_COND
+
+HWND mgui_btnCreate(
+	DWORD dwExStyle,
+	LPCWSTR name,
+	DWORD dwStyle,
+	int x, int y,
+	int width, int height,
+	HWND parent,
+	HMENU hmenu,
+	HINSTANCE hInstance,
+	COLORREF color
+)
+{
+	mgui_btnBmps_t * bmps = malloc(sizeof(mgui_btnBmps_t));
+	if (bmps == NULL)
+	{
+		return NULL;
+	}
+	bmps->tracking = false;
+	bmps->hover = false;
+	bmps->press = false;
+
+	// Create button brushes
+	HBRUSH normBrush = CreateSolidBrush(color);
+	const uint32_t r = GetRValue(color), g = GetGValue(color), b = GetBValue(color);
+	HBRUSH pressBrush = CreateSolidBrush(RGB((r * 3) / 4, (g * 2) / 4, (b * 5) / 6));
+	HBRUSH highBrush = CreateSolidBrush(RGB(mgui_cClip(((r + 10) * 4) / 3), mgui_cClip(((g + 10) * 5) / 3), mgui_cClip(((b + 10) * 5) / 4)));
+
+	const RECT btnRect = { .left = 0, .right = width, .top = 0, .bottom = height };
+
+
+	if ((normBrush == NULL) || (pressBrush == NULL) || (highBrush == NULL))
+	{
+		mgui_btnCreateCleanup(bmps, normBrush, pressBrush, highBrush, NULL, NULL, NULL, NULL);
+		return NULL;
+	}
+
+	// Padded line length calculation
+	HDC dc = CreateCompatibleDC(NULL);
+	if (dc == NULL)
+	{
+		mgui_btnCreateCleanup(bmps, normBrush, pressBrush, highBrush, NULL, NULL, NULL, NULL);
+		return NULL;
+	}
+	bmps->hbmNormal = CreateBitmap(width, height, 1, 32, NULL);
+	if (bmps->hbmNormal == NULL)
+	{
+		mgui_btnCreateCleanup(bmps, normBrush, pressBrush, highBrush, dc, NULL, NULL, NULL);
+		return NULL;
+	}
+	HGDIOBJ oldbmp = SelectObject(dc, bmps->hbmNormal);
+
+	// Draw normal button
+	FillRect(dc, &btnRect, normBrush);
+
+
+	bmps->hbmPressed = CreateBitmap(width, height, 1, 32, NULL);
+	if (bmps->hbmPressed == NULL)
+	{
+		mgui_btnCreateCleanup(bmps, normBrush, pressBrush, highBrush, dc, bmps->hbmNormal, NULL, NULL);
+		return NULL;
+	}
+	SelectObject(dc, bmps->hbmPressed);
+
+	// Draw pressed button
+	FillRect(dc, &btnRect, pressBrush);
+
+
+	bmps->hbmHighlight = CreateBitmap(width, height, 1, 32, NULL);
+	if (bmps->hbmHighlight == NULL)
+	{
+		mgui_btnCreateCleanup(bmps, normBrush, pressBrush, highBrush, dc, bmps->hbmNormal, bmps->hbmPressed, NULL);
+		return NULL;
+	}
+	SelectObject(dc, bmps->hbmHighlight);
+
+	// Draw highlighted button
+	FillRect(dc, &btnRect, highBrush);
+
+
+	SelectObject(dc, oldbmp);
+	mgui_btnCreateCleanup(NULL, normBrush, pressBrush, highBrush, dc, NULL, NULL, NULL);
+
+
+	HWND hbtn = CreateWindowExW(
+		dwExStyle,
+		L"button",
+		name,
+		BS_OWNERDRAW | dwStyle,
+		x, y,
+		width, height,
+		parent,
+		hmenu,
+		hInstance,
+		NULL
+	);
+
+	SetWindowSubclass(hbtn, &mgui_btnOwnerDrawProc, 1, (DWORD_PTR)bmps);
+	return hbtn;
+}
+
+
+LRESULT CALLBACK mgui_btnOwnerDrawProc(
+	HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp,
+	UINT_PTR uidsubclass, DWORD_PTR dwRefData
+)
+{
+	mgui_btnBmps_t * restrict hbmps = (mgui_btnBmps_t *)dwRefData;
+	
+	BITMAP bitmap01;
+	HDC hdcmem01;
+	HGDIOBJ oldbitmap01;
+
+	switch (umsg)
+	{
+	case WM_LBUTTONDOWN:
+		hbmps->press = true;
+		InvalidateRect(hwnd, NULL, FALSE);
+		break;
+	case WM_LBUTTONUP:
+		hbmps->press = false;
+		InvalidateRect(hwnd, NULL, FALSE);
+		break;
+	case WM_MOUSEMOVE:
+		if (!hbmps->tracking)
+		{
+			TRACKMOUSEEVENT tme = { 0 };
+			tme.cbSize = sizeof tme;
+			tme.dwFlags = TME_HOVER | TME_LEAVE;
+			tme.dwHoverTime = 1;
+			tme.hwndTrack = hwnd;
+			TrackMouseEvent(&tme);
+			hbmps->tracking = true;
+		}
+		if (hbmps->press)
+		{
+			InvalidateRect(hwnd, NULL, FALSE);
+		}
+		break;
+	case WM_MOUSEHOVER:
+		hbmps->hover = true;
+		InvalidateRect(hwnd, NULL, FALSE);
+		break;
+	case WM_MOUSELEAVE:
+		hbmps->hover = false;
+		hbmps->press = false;
+		InvalidateRect(hwnd, NULL, FALSE);
+		hbmps->tracking = false;
+		break;
+	case WM_PAINT:
+	{
+		// Detect mouse position
+		POINT p;
+		GetCursorPos(&p);
+		ScreenToClient(hwnd, &p);
+
+		RECT rc;
+		GetClientRect(hwnd, &rc);
+
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hwnd, &ps);
+		hdcmem01 = CreateCompatibleDC(hdc);
+
+		if (hbmps->hover && (p.x >= rc.left) && (p.x <= rc.right) && (p.y >= rc.top) && (p.y <= rc.bottom))
+		{
+			oldbitmap01 = SelectObject(hdcmem01, hbmps->press ? hbmps->hbmPressed : hbmps->hbmHighlight);
+		}
+		else
+		{
+			oldbitmap01 = SelectObject(hdcmem01, hbmps->hbmNormal);
+		}
+
+		RECT cr;
+		GetClientRect(hwnd, &cr);
+		wchar_t txt[MAX_PATH];
+		GetWindowTextW(hwnd, txt, MAX_PATH);
+		SetBkMode(hdcmem01, TRANSPARENT);
+		SetTextColor(hdcmem01, RGB(255, 255, 255));
+		DrawTextW(hdcmem01, txt, -1, &cr, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
+
+		GetObjectW(hbmps->hbmNormal, sizeof bitmap01, &bitmap01);
+		BitBlt(hdc, 0, 0, bitmap01.bmWidth, bitmap01.bmHeight, hdcmem01, 0, 0, SRCCOPY);
+
+		SelectObject(hdcmem01, oldbitmap01);
+		DeleteDC(hdcmem01);
+		EndPaint(hwnd, &ps);
+
+		break;
+	}
+	case WM_NCDESTROY:
+		RemoveWindowSubclass(hwnd, &mgui_btnOwnerDrawProc, 1);
+		
+		// Destroy bitmaps
+		DeleteObject(hbmps->hbmNormal);
+		DeleteObject(hbmps->hbmHighlight);
+		DeleteObject(hbmps->hbmHighlight);
+		free(hbmps);
+
+		break;
+	}
+	return DefSubclassProc(hwnd, umsg, wp, lp);
 }
