@@ -2,6 +2,11 @@
 
 > A way to track your mouse. Literally.
 
+[![Release version](https://img.shields.io/github/v/release/makuke1234/mouseStats?display_name=release&include_prereleases)](https://github.com/makuke1234/mouseStats/releases/latest)
+[![Total downloads](https://img.shields.io/github/downloads/makuke1234/mouseStats/total)](https://github.com/makuke1234/mouseStats/releases)
+![C version](https://img.shields.io/badge/version-C2x-blue.svg)
+[![wakatime](https://wakatime.com/badge/github/makuke1234/mouseStats.svg)](https://wakatime.com/badge/github/makuke1234/mouseStats)
+
 
 # Progress
 
