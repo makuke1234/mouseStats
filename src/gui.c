@@ -134,12 +134,22 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		This->titleTextFont = CreateFontW(
 			-MulDiv(12, This->dpi, 72), 0, 0, 0,
 			FW_MEDIUM, FALSE, FALSE, FALSE,
-			ANSI_CHARSET,
+			DEFAULT_CHARSET,
 			OUT_CHARACTER_PRECIS,
 			CLIP_DEFAULT_PRECIS,
 			DEFAULT_QUALITY,
 			DEFAULT_PITCH,
 			L"Segoe UI"
+		);
+		This->titleBtnFont = CreateFontW(
+			-MulDiv(12, This->dpi, 72), 0, 0, 0,
+			FW_NORMAL, FALSE, FALSE, FALSE,
+			DEFAULT_CHARSET,
+			OUT_CHARACTER_PRECIS,
+			CLIP_DEFAULT_PRECIS,
+			DEFAULT_QUALITY,
+			DEFAULT_PITCH,
+			L"Marlett"
 		);
 
 		This->sysMenu = GetSystemMenu(hwnd, FALSE);
@@ -160,25 +170,27 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		GetClientRect(hwnd, &rc);
 		This->closeBtn = mgui_btnCreate(
 			0,
-			L"X",
+			L"\x72",
 			WS_CHILD | WS_VISIBLE,
 			rc.right - sz, 0,
 			sz, MulDiv(30, This->dpi, 96),
 			hwnd,
 			(HMENU)IDM_EXIT,
 			(HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE),
-			RGB(215, 21, 38)
+			RGB(215, 21, 38),
+			This->titleBtnFont
 		);
 		This->minBtn = mgui_btnCreate(
 			0,
-			L"_",
+			L"\x30",
 			WS_CHILD | WS_VISIBLE,
 			rc.right - 2 * sz, 0,
 			sz, MulDiv(30, This->dpi, 96),
 			hwnd,
 			(HMENU)IDM_MIN,
 			(HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE),
-			RGB(0, 162, 232)
+			RGB(0, 162, 232),
+			This->titleBtnFont
 		);
 
 		break;
@@ -364,7 +376,8 @@ HWND mgui_btnCreate(
 	HWND parent,
 	HMENU hmenu,
 	HINSTANCE hInstance,
-	COLORREF color
+	COLORREF color,
+	HFONT font
 )
 {
 	mgui_btnBmps_t * bmps = malloc(sizeof(mgui_btnBmps_t));
@@ -372,6 +385,7 @@ HWND mgui_btnCreate(
 	{
 		return NULL;
 	}
+	bmps->font = font;
 	bmps->tracking = false;
 	bmps->hover = false;
 	bmps->press = false;
@@ -532,6 +546,10 @@ LRESULT CALLBACK mgui_btnOwnerDrawProc(
 		GetWindowTextW(hwnd, txt, MAX_PATH);
 		SetBkMode(hdcmem01, TRANSPARENT);
 		SetTextColor(hdcmem01, RGB(255, 255, 255));
+		if (hbmps->font != NULL)
+		{
+			SelectObject(hdcmem01, hbmps->font);
+		}
 		DrawTextW(hdcmem01, txt, -1, &cr, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 
 		GetObjectW(hbmps->hbmNormal, sizeof bitmap01, &bitmap01);

@@ -14,7 +14,7 @@ typedef struct msdata
 
 	RECT titleRect;
 	HBRUSH titleBrush, titleBrushInactive;
-	HFONT titleTextFont;
+	HFONT titleTextFont, titleBtnFont;
 	bool resizeEnable;
 	bool isActive;
 	bool rclick;

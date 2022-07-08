@@ -18,6 +18,7 @@ bool mgui_handleSystemMenu(HWND hwnd, WPARAM wp);
 
 typedef struct mgui_btnBmps
 {
+	HFONT font;
 	HBITMAP hbmNormal, hbmPressed, hbmHighlight;
 	bool tracking, hover, press;
 
@@ -32,7 +33,8 @@ HWND mgui_btnCreate(
 	HWND parent,
 	HMENU hmenu,
 	HINSTANCE hInstance,
-	COLORREF color
+	COLORREF color,
+	HFONT font
 );
 LRESULT CALLBACK mgui_btnOwnerDrawProc(
 	HWND hwnd, UINT umsg, WPARAM wp, LPARAM lp,

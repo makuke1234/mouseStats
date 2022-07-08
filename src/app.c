@@ -19,14 +19,15 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 		.titleBrush   = NULL,
 		.titleBrushInactive = NULL,
 		.titleTextFont = NULL,
-		.resizeEnable = true,
-		.isActive = true,
-		.rclick = false,
+		.titleBtnFont  = NULL,
+		.resizeEnable  = true,
+		.isActive      = true,
+		.rclick        = false,
 
 		.contextMenu = NULL,
-		.sysMenu = NULL,
-		.closeBtn = NULL,
-		.minBtn = NULL
+		.sysMenu     = NULL,
+		.closeBtn    = NULL,
+		.minBtn      = NULL
 	};
 
 	SetProcessDPIAware();
