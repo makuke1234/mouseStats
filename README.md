@@ -9,9 +9,16 @@ The project is currently under heavy development. The goal is to try a new way o
 sublime user interfaces by using borderless windows:
 
 
+### Borderless window
 ![Borderless](./img/borderless.png)
 
-The app should also be DPI-aware and should use fluid design.
+### Close button highlighted:
+![Close high](./img/closehigh.png)
+
+### Minimize button highlighted:
+![Minimize high](./img/minhigh.png)
+
+The app should also be DPI-aware and use fluid design.
 
 
 # License
