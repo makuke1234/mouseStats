@@ -18,12 +18,12 @@ RELOBJFILES=$(SRCFILES:%.c=%.c.o)
 RELOBJFILES+=$(RSCFILES:%.rc=%.rc.o)
 RELOBJFILES:=$(RELOBJFILES:$(SRC)/%=$(OBJ)/%)
 
-DEBOBJFILES=$(SRCFILES:%.cpp=%.c.d.o)
+DEBOBJFILES=$(SRCFILES:%.c=%.c.d.o)
 DEBOBJFILES+=$(RSCFILES:%.rc=%.rc.d.o)
 DEBOBJFILES:=$(DEBOBJFILES:$(SRC)/%=$(OBJ)/%)
 
 
-default: release
+default: debug
 
 rel: release
 deb: debug
