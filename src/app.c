@@ -61,7 +61,7 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 	
 	if (ms_compositionEnabled())
 	{
-		static const MARGINS shadow_state = { 1, 1, 1, 1 };
+		const MARGINS shadow_state = { 1, 1, 1, 1 };
     	DwmExtendFrameIntoClientArea(This->hwnd, &shadow_state);
 	}
 	

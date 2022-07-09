@@ -1,5 +1,6 @@
 #include "gui.h"
 #include "app.h"
+#include "mouseHook.h"
 
 LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
@@ -25,8 +26,27 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
 	bool def = false;
 
+
 	switch (msg)
 	{
+	case MMH_MOUSEHOOK_MSG:
+	{
+		mmh_data_t data;
+		mmh_decode(&data, wp, lp);
+
+		// Print all information	
+		printf(
+			"Event: %s; Pos: %ld, %ld; Wheel: %hd; Hwheel: %hd; Time: %ld\n",
+			mmh_eventName(data.eventType),
+			data.cursorPos.x,
+			data.cursorPos.y,
+			data.wheelDelta,
+			data.hwheelDelta,
+			data.timeStamp
+		);
+
+		break;
+	}
 	case WM_SYSCOMMAND:
 		if (!mgui_handleSystemMenu(hwnd, wp))
 		{
