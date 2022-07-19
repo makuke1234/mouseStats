@@ -14,7 +14,7 @@ The project is currently under heavy development. The goal is to try a new way o
 sublime user interfaces by using borderless windows:
 
 
-### Borderless window
+### Borderless window including a metro-style button
 ![Borderless](./img/borderless.png)
 
 ### Close button highlighted:
@@ -22,6 +22,13 @@ sublime user interfaces by using borderless windows:
 
 ### Minimize button highlighted:
 ![Minimize high](./img/minhigh.png)
+
+### Metro-style button highlighted:
+![Metro high](./img/metrohigh.png)
+
+### Metro-style button pressed:
+![Metro pressed](./img/metropress.png)
+
 
 The app should also be DPI-aware and use fluid design.
 

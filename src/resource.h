@@ -10,5 +10,8 @@
 
 #define IDM_EXIT 101
 #define IDM_MIN  102
+#define IDM_TEST 103
+
+#define MS_DEFAULT_COLOR RGB(72, 79, 91)
 
 #endif

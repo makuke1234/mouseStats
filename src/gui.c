@@ -84,7 +84,7 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		HDC hdc = BeginPaint(hwnd, &ps);
 
 		// Draw draggable titlebar
-		mgui_calcTitleRect(hwnd, &This->titleRect, This->dpi);
+		mgui_calcTitleRect(hwnd, &This->titleRect, &This->yBegin, This->dpi);
 		FillRect(hdc, &This->titleRect, This->isActive ? This->titleBrush : This->titleBrushInactive);
 
 		wchar_t titleText[MAX_TITLETEXT];
@@ -107,7 +107,7 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 	}
 	case WM_ACTIVATE:
 		This->isActive = (wp == WA_ACTIVE) || (wp == WA_CLICKACTIVE);
-		mgui_calcTitleRect(hwnd, &This->titleRect, This->dpi);
+		mgui_calcTitleRect(hwnd, &This->titleRect, &This->yBegin, This->dpi);
 		InvalidateRect(hwnd, &This->titleRect, FALSE);
 		break;
 	case WM_SIZE:
@@ -115,9 +115,12 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 			// Move button
 			RECT rc;
 			GetClientRect(hwnd, &rc);
-			SetWindowPos(This->closeBtn, NULL, rc.right - MulDiv(40, This->dpi, 96), 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
-			SetWindowPos(This->minBtn,   NULL, rc.right - MulDiv(80, This->dpi, 96), 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+			SetWindowPos(This->closeBtn, NULL, rc.right - ms_defcdpi(40), 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+			SetWindowPos(This->minBtn,   NULL, rc.right - ms_defcdpi(80), 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+
 		}
+		SetWindowPos(This->testBtn, NULL, ms_defcdpi(10), This->yBegin + ms_defcdpi(10), 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+
 		InvalidateRect(hwnd, NULL, FALSE);
 		break;
 	case WM_NCCALCSIZE:
@@ -132,7 +135,13 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		break;
 	case WM_NCHITTEST:
 		//InvalidateRect(This->closeBtn, NULL, FALSE);
-		return mgui_hitTest(hwnd, (POINT){ .x = GET_X_LPARAM(lp), .y = GET_Y_LPARAM(lp) }, &This->titleRect, This->resizeEnable, This->rclick);
+		return mgui_hitTest(
+			hwnd,
+			(POINT){ .x = GET_X_LPARAM(lp), .y = GET_Y_LPARAM(lp) },
+			&This->titleRect,
+			This->resizeEnable,
+			This->rclick
+		);
 	case WM_NCACTIVATE:
 		if (!ms_compositionEnabled())
 		{
@@ -147,12 +156,12 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		PostQuitMessage(0);
 		break;
 	case WM_CREATE:
-		This->dpi = (int)ms_dpi(hwnd);
+		This->dpi = ms_dpi(hwnd);
 
 		This->titleBrush = CreateSolidBrush(RGB(50, 127, 255));
 		This->titleBrushInactive = CreateSolidBrush(RGB(192, 192, 192));
 		This->titleTextFont = CreateFontW(
-			-MulDiv(12, This->dpi, 72), 0, 0, 0,
+			ms_deffdpi(12), 0, 0, 0,
 			FW_MEDIUM, FALSE, FALSE, FALSE,
 			DEFAULT_CHARSET,
 			OUT_CHARACTER_PRECIS,
@@ -162,7 +171,7 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 			L"Segoe UI"
 		);
 		This->titleBtnFont = CreateFontW(
-			-MulDiv(12, This->dpi, 72), 0, 0, 0,
+			ms_deffdpi(12), 0, 0, 0,
 			FW_NORMAL, FALSE, FALSE, FALSE,
 			DEFAULT_CHARSET,
 			OUT_CHARACTER_PRECIS,
@@ -170,6 +179,26 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 			DEFAULT_QUALITY,
 			DEFAULT_PITCH,
 			L"Marlett"
+		);
+		This->btnFont = CreateFontW(
+			ms_deffdpi(11), 0, 0, 0,
+			FW_MEDIUM, FALSE, FALSE, FALSE,
+			DEFAULT_CHARSET,
+			OUT_CHARACTER_PRECIS,
+			CLIP_DEFAULT_PRECIS,
+			DEFAULT_QUALITY,
+			DEFAULT_PITCH,
+			L"Segoe UI"
+		);
+		This->normFont = CreateFontW(
+			ms_deffdpi(11), 0, 0, 0,
+			FW_NORMAL, FALSE, FALSE, FALSE,
+			DEFAULT_CHARSET,
+			OUT_CHARACTER_PRECIS,
+			CLIP_DEFAULT_PRECIS,
+			DEFAULT_QUALITY,
+			DEFAULT_PITCH,
+			L"Segoe UI"
 		);
 
 		This->sysMenu = GetSystemMenu(hwnd, FALSE);
@@ -185,32 +214,50 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 			AppendMenuW(This->contextMenu, MF_STRING | MF_DEFAULT, IDM_EXIT, L"&Close");
 		}
 
-		const int sz = MulDiv(40, This->dpi, 96);
+		const int sz = ms_defcdpi(40);
 		RECT rc;
 		GetClientRect(hwnd, &rc);
 		This->closeBtn = mgui_btnCreate(
+			This->dpi,
 			0,
 			L"\x72",
 			WS_CHILD | WS_VISIBLE,
 			rc.right - sz, 0,
-			sz, MulDiv(30, This->dpi, 96),
+			sz, ms_defcdpi(30),
 			hwnd,
 			(HMENU)IDM_EXIT,
 			(HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE),
 			RGB(215, 21, 38),
-			This->titleBtnFont
+			This->titleBtnFont,
+			false
 		);
 		This->minBtn = mgui_btnCreate(
+			This->dpi,
 			0,
 			L"\x30",
 			WS_CHILD | WS_VISIBLE,
 			rc.right - 2 * sz, 0,
-			sz, MulDiv(30, This->dpi, 96),
+			sz, ms_defcdpi(30),
 			hwnd,
 			(HMENU)IDM_MIN,
 			(HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE),
 			RGB(0, 162, 232),
-			This->titleBtnFont
+			This->titleBtnFont,
+			false
+		);
+		This->testBtn = mgui_btnCreate(
+			This->dpi,
+			0,
+			L"Activate",
+			WS_CHILD | WS_VISIBLE,
+			ms_defcdpi(10), This->yBegin + ms_defcdpi(10),
+			ms_defcdpi(90), ms_defcdpi(32),
+			hwnd,
+			(HMENU)IDM_TEST,
+			(HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE),
+			MS_DEFAULT_COLOR,
+			This->btnFont,
+			true
 		);
 
 		break;
@@ -300,7 +347,7 @@ void mgui_adjustMaximizedClientRect(HWND window, RECT * restrict rect)
 
 	*rect = monitorInfo.rcWork;
 }
-void mgui_calcTitleRect(HWND hwnd, RECT * restrict rect, int dpi)
+void mgui_calcTitleRect(HWND hwnd, RECT * restrict rect, int * restrict yBegin, int dpi)
 {
 	RECT cl;
 	if (!GetClientRect(hwnd, &cl))
@@ -312,6 +359,7 @@ void mgui_calcTitleRect(HWND hwnd, RECT * restrict rect, int dpi)
 	rect->right  = cl.right;
 	rect->top    = cl.top;
 	rect->bottom = rect->top + MulDiv(30, dpi, 96);
+	*yBegin = rect->bottom;
 }
 
 void mgui_handleContextMenu(HWND hwnd, HMENU hmenu, LPARAM lp, bool sysmenu)
@@ -388,6 +436,7 @@ static inline void mgui_btnCreateCleanup(
 #undef DELOBJ_COND
 
 HWND mgui_btnCreate(
+	int dpi,
 	DWORD dwExStyle,
 	LPCWSTR name,
 	DWORD dwStyle,
@@ -397,7 +446,8 @@ HWND mgui_btnCreate(
 	HMENU hmenu,
 	HINSTANCE hInstance,
 	COLORREF color,
-	HFONT font
+	HFONT font,
+	bool border
 )
 {
 	mgui_btnBmps_t * bmps = malloc(sizeof(mgui_btnBmps_t));
@@ -405,18 +455,21 @@ HWND mgui_btnCreate(
 	{
 		return NULL;
 	}
-	bmps->font = font;
-	bmps->tracking = false;
-	bmps->hover = false;
-	bmps->press = false;
+	bmps->font           = font;
+	bmps->tracking       = false;
+	bmps->hover          = false;
+	bmps->press          = false;
+	bmps->pressTextColor = border ? RGB(0, 0, 0) : RGB(255, 255, 255);
 
 	// Create button brushes
-	HBRUSH normBrush = CreateSolidBrush(color);
-	const uint32_t r = GetRValue(color), g = GetGValue(color), b = GetBValue(color);
-	HBRUSH pressBrush = CreateSolidBrush(RGB((r * 3) / 4, (g * 2) / 4, (b * 5) / 6));
-	HBRUSH highBrush = CreateSolidBrush(RGB(mgui_cClip(((r + 10) * 4) / 3), mgui_cClip(((g + 10) * 5) / 3), mgui_cClip(((b + 10) * 5) / 4)));
+	HBRUSH normBrush  = CreateSolidBrush(color);
+	const uint32_t r  = GetRValue(color), g = GetGValue(color), b = GetBValue(color);
+	HBRUSH pressBrush = CreateSolidBrush(border ? RGB(255, 255, 255) : RGB((r * 3) / 4, (g * 2) / 4, (b * 5) / 6));
+	HBRUSH highBrush  = CreateSolidBrush(RGB(mgui_cClip(((r + 10) * 4) / 3), mgui_cClip(((g + 10) * 4) / 3), mgui_cClip(((b + 10) * 4) / 3)));
 
-	const RECT btnRect = { .left = 0, .right = width, .top = 0, .bottom = height };
+	const int margin      = border ? ms_cdpi(dpi, 2) : 0;
+	const RECT borderRect = { .left = 0,      .right = width,          .top = 0,      .bottom = height };
+	const RECT btnRect    = { .left = margin, .right = width - margin, .top = margin, .bottom = height - margin };
 
 
 	if ((normBrush == NULL) || (pressBrush == NULL) || (highBrush == NULL))
@@ -441,6 +494,10 @@ HWND mgui_btnCreate(
 	HGDIOBJ oldbmp = SelectObject(dc, bmps->hbmNormal);
 
 	// Draw normal button
+	if (border)
+	{
+		FillRect(dc, &borderRect, GetStockObject(WHITE_BRUSH));
+	}
 	FillRect(dc, &btnRect, normBrush);
 
 
@@ -453,6 +510,10 @@ HWND mgui_btnCreate(
 	SelectObject(dc, bmps->hbmPressed);
 
 	// Draw pressed button
+	if (border)
+	{
+		FillRect(dc, &borderRect, GetStockObject(WHITE_BRUSH));
+	}
 	FillRect(dc, &btnRect, pressBrush);
 
 
@@ -465,6 +526,10 @@ HWND mgui_btnCreate(
 	SelectObject(dc, bmps->hbmHighlight);
 
 	// Draw highlighted button
+	if (border)
+	{
+		FillRect(dc, &borderRect, GetStockObject(WHITE_BRUSH));
+	}
 	FillRect(dc, &btnRect, highBrush);
 
 
@@ -551,8 +616,11 @@ LRESULT CALLBACK mgui_btnOwnerDrawProc(
 		HDC hdc = BeginPaint(hwnd, &ps);
 		hdcmem01 = CreateCompatibleDC(hdc);
 
+
+		COLORREF tCol = RGB(255, 255, 255);
 		if (hbmps->hover && (p.x >= rc.left) && (p.x <= rc.right) && (p.y >= rc.top) && (p.y <= rc.bottom))
 		{
+			tCol = hbmps->press ? hbmps->pressTextColor : tCol;
 			oldbitmap01 = SelectObject(hdcmem01, hbmps->press ? hbmps->hbmPressed : hbmps->hbmHighlight);
 		}
 		else
@@ -562,15 +630,19 @@ LRESULT CALLBACK mgui_btnOwnerDrawProc(
 
 		RECT cr;
 		GetClientRect(hwnd, &cr);
+		
 		wchar_t txt[MAX_PATH];
 		GetWindowTextW(hwnd, txt, MAX_PATH);
 		SetBkMode(hdcmem01, TRANSPARENT);
-		SetTextColor(hdcmem01, RGB(255, 255, 255));
+		SetTextColor(hdcmem01, tCol);
 		if (hbmps->font != NULL)
 		{
 			SelectObject(hdcmem01, hbmps->font);
 		}
-		DrawTextW(hdcmem01, txt, -1, &cr, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
+		RECT textrect;
+		DrawTextW(hdcmem01, txt, -1, &textrect, DT_CALCRECT);
+		cr.top = cr.top + ((cr.bottom - cr.top) - (textrect.bottom - textrect.top)) / 2;
+		DrawTextW(hdcmem01, txt, -1, &cr, DT_CENTER);
 
 		GetObjectW(hbmps->hbmNormal, sizeof bitmap01, &bitmap01);
 		BitBlt(hdc, 0, 0, bitmap01.bmWidth, bitmap01.bmHeight, hdcmem01, 0, 0, SRCCOPY);

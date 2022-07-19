@@ -13,14 +13,17 @@ typedef struct msdata
 	HWND hwnd;
 
 	RECT titleRect;
+	int yBegin;
 	HBRUSH titleBrush, titleBrushInactive;
-	HFONT titleTextFont, titleBtnFont;
+	HFONT titleTextFont, titleBtnFont, btnFont, normFont;
 	bool resizeEnable;
 	bool isActive;
 	bool rclick;
 
 	HMENU contextMenu, sysMenu;
 	HWND closeBtn, minBtn;
+
+	HWND testBtn;
 
 } msdata_t;
 

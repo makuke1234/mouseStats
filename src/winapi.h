@@ -35,7 +35,14 @@ bool ms_regClassBg(const wchar_t * restrict className, WNDPROC winProc, COLORREF
 bool ms_compositionEnabled(void);
 bool ms_isMaximized(HWND hwnd);
 bool ms_isActive(HWND hwnd);
-UINT ms_dpi(HWND hwnd);
+
+int ms_dpi(HWND hwnd);
+int ms_hdpi(HWND hwnd, int size);
+int ms_cdpi(int dpi, int size);
+int ms_fdpi(int dpi, int size);
+int ms_defcdpi(int size);
+int ms_deffdpi(int size);
+
 
 typedef UINT (WINAPI * pfnGetDpiForSystem_t)(void);
 typedef UINT (WINAPI * pfnGetDpiForWindow_t)(HWND hwnd);

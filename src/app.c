@@ -38,7 +38,7 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 
 	InitCommonControlsEx(&icex);
 
-	if (!ms_regClass(MOUSE_STATS_CLASS, &mgui_winProc))
+	if (!ms_regClassBg(MOUSE_STATS_CLASS, &mgui_winProc, MS_DEFAULT_COLOR))
 	{
 		ePrint("Error initializing windows class!");
 		return false;

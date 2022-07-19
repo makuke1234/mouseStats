@@ -43,21 +43,26 @@ bool ms_isActive(HWND hwnd)
 {
 	return GetForegroundWindow() == hwnd;
 }
-UINT ms_dpi(HWND hwnd)
+
+static int s_defaultDpi = USER_DEFAULT_SCREEN_DPI;
+
+int ms_dpi(HWND hwnd)
 {
 	if (hwnd != NULL)
 	{
-		UINT dpi = ms_GetDpiForWindow(hwnd);
+		const int dpi = (int)ms_GetDpiForWindow(hwnd);
 		if (dpi)
 		{
+			s_defaultDpi = dpi;
 			return dpi;
 		}
 	}
 	else
 	{
-		UINT dpi = ms_GetDpiForSystem();
+		const int dpi = (int)ms_GetDpiForSystem();
 		if (dpi)
 		{
+			s_defaultDpi = dpi;
 			return dpi;
 		}
 	}
@@ -65,15 +70,36 @@ UINT ms_dpi(HWND hwnd)
 	HDC hdc = GetDC(hwnd);
 	if (hdc != NULL)
 	{
-		UINT dpi = (UINT)GetDeviceCaps(hdc, LOGPIXELSX);
+		const int dpi = GetDeviceCaps(hdc, LOGPIXELSX);
 		ReleaseDC(hwnd, hdc);
+		s_defaultDpi = dpi;
 		return dpi;
 	}
 	else
 	{
 		return USER_DEFAULT_SCREEN_DPI;
 	}
+}
 
+int ms_hdpi(HWND hwnd, int size)
+{
+	return ms_cdpi(ms_dpi(hwnd), size);
+}
+int ms_cdpi(int dpi, int size)
+{
+	return MulDiv(size, dpi, 96);
+}
+int ms_fdpi(int dpi, int size)
+{
+	return -MulDiv(size, dpi, 72);
+}
+int ms_defcdpi(int size)
+{
+	return ms_cdpi(s_defaultDpi, size);
+}
+int ms_deffdpi(int size)
+{
+	return ms_fdpi(s_defaultDpi, size);
 }
 
 static pfnGetDpiForSystem_t pfnGetDpiForSystem = NULL;
