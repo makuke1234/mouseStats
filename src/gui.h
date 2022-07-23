@@ -20,6 +20,7 @@ typedef struct mgui_btnBmps
 {
 	HFONT font;
 	HBITMAP hbmNormal, hbmPressed, hbmHighlight;
+	RECT btnRect;
 	bool tracking:1, hover:1, press:1;
 	COLORREF pressTextColor;
 

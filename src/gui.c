@@ -32,18 +32,20 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 	case MMH_MOUSEHOOK_MSG:
 	{
 		mmh_data_t data;
-		mmh_decode(&data, wp, lp);
 
 		// Print all information	
-		printf(
-			"Event: %s; Pos: %ld, %ld; Wheel: %hd; Hwheel: %hd; Time: %ld\n",
-			mmh_eventName(data.eventType),
-			data.cursorPos.x,
-			data.cursorPos.y,
-			data.wheelDelta,
-			data.hwheelDelta,
-			data.timeStamp
-		);
+		if (mmh_decode(&data, wp, lp))
+		{
+			printf(
+				"Event: %s; Pos: %ld, %ld; Wheel: %hd; Hwheel: %hd; Time: %ld\n",
+				mmh_eventName(data.eventType),
+				data.cursorPos.x,
+				data.cursorPos.y,
+				data.wheelDelta,
+				data.hwheelDelta,
+				data.timeStamp
+			);
+		}
 
 		break;
 	}
@@ -249,7 +251,7 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 			This->dpi,
 			0,
 			L"Activate",
-			WS_CHILD | WS_VISIBLE,
+			WS_CHILD | WS_VISIBLE | WS_TABSTOP,
 			ms_defcdpi(10), This->yBegin + ms_defcdpi(10),
 			ms_defcdpi(90), ms_defcdpi(32),
 			hwnd,
@@ -379,6 +381,9 @@ void mgui_handleCommand(HWND hwnd, WPARAM wp)
 {
 	switch (LOWORD(wp))
 	{
+	case IDM_TEST:
+		MessageBoxW(hwnd, L"This is a test", L"test", MB_ICONINFORMATION | MB_OK);
+		break;
 	case IDM_MIN:
 		ShowWindow(hwnd, SW_MINIMIZE);
 		break;
@@ -533,6 +538,9 @@ HWND mgui_btnCreate(
 	FillRect(dc, &btnRect, highBrush);
 
 
+	bmps->btnRect = btnRect;
+
+
 	SelectObject(dc, oldbmp);
 	mgui_btnCreateCleanup(NULL, normBrush, pressBrush, highBrush, dc, NULL, NULL, NULL);
 
@@ -602,6 +610,28 @@ LRESULT CALLBACK mgui_btnOwnerDrawProc(
 		InvalidateRect(hwnd, NULL, FALSE);
 		hbmps->tracking = false;
 		break;
+	case WM_GETDLGCODE:
+		switch (wp)
+		{
+		case VK_TAB:
+			break;
+		case VK_RETURN:
+			SendMessageW(GetParent(hwnd), WM_COMMAND, GetMenu(hwnd), 0);
+			break;
+		case VK_SPACE:
+			hbmps->press = true;
+			break;
+		}
+		break;
+	case WM_KEYUP:
+		if (wp == VK_SPACE)
+		{
+			hbmps->press = false;
+		}
+		break;
+	case WM_KILLFOCUS:
+		InvalidateRect(hwnd, NULL, FALSE);
+		break;
 	case WM_PAINT:
 	{
 		// Detect mouse position
@@ -618,7 +648,7 @@ LRESULT CALLBACK mgui_btnOwnerDrawProc(
 
 
 		COLORREF tCol = RGB(255, 255, 255);
-		if (hbmps->hover && (p.x >= rc.left) && (p.x <= rc.right) && (p.y >= rc.top) && (p.y <= rc.bottom))
+		if (hbmps->press || (hbmps->hover && (p.x >= rc.left) && (p.x <= rc.right) && (p.y >= rc.top) && (p.y <= rc.bottom)))
 		{
 			tCol = hbmps->press ? hbmps->pressTextColor : tCol;
 			oldbitmap01 = SelectObject(hdcmem01, hbmps->press ? hbmps->hbmPressed : hbmps->hbmHighlight);
@@ -658,7 +688,7 @@ LRESULT CALLBACK mgui_btnOwnerDrawProc(
 		
 		// Destroy bitmaps
 		DeleteObject(hbmps->hbmNormal);
-		DeleteObject(hbmps->hbmHighlight);
+		DeleteObject(hbmps->hbmPressed);
 		DeleteObject(hbmps->hbmHighlight);
 		free(hbmps);
 

@@ -32,7 +32,7 @@ typedef struct mmh_data
 
 } mmh_data_t;
 
-void mmh_decode(mmh_data_t * restrict ptr, WPARAM wp, LPARAM lp);
+bool mmh_decode(mmh_data_t * restrict ptr, WPARAM wp, LPARAM lp);
 const char * mmh_eventName(mmh_type_e type);
 
 #endif

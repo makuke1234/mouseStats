@@ -38,8 +38,10 @@ void mmh_removeHook(void)
 	s_mmh_hwnd      = NULL;
 }
 
-void mmh_decode(mmh_data_t * restrict ptr, WPARAM wp, LPARAM lp)
+bool mmh_decode(mmh_data_t * restrict ptr, WPARAM wp, LPARAM lp)
 {
+	assert(ptr != NULL);
+
 	// Determine message type
 	switch (wp)
 	{
@@ -67,6 +69,10 @@ void mmh_decode(mmh_data_t * restrict ptr, WPARAM wp, LPARAM lp)
 	}
 	
 	const MSLLHOOKSTRUCT * restrict hstruct = (MSLLHOOKSTRUCT *)lp;
+	if (hstruct == NULL)
+	{
+		return false;
+	}
 	ptr->cursorPos = hstruct->pt;
 	
 	if (ptr->eventType == mmh_wheel)
@@ -86,6 +92,7 @@ void mmh_decode(mmh_data_t * restrict ptr, WPARAM wp, LPARAM lp)
 	}
 
 	ptr->timeStamp = hstruct->time;
+	return true;
 }
 const char * mmh_eventName(mmh_type_e type)
 {
