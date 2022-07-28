@@ -40,7 +40,8 @@ This project uses the MIT license.
 
 # Credits
 
-Mouse icon:
+Mouse icon:<br>
 <a href="https://www.flaticon.com/free-icons/cursor" title="cursor icons">Cursor icons created by Freepik - Flaticon</a>
-Statistics icon:
+
+Statistics icon:<br>
 <a href="https://www.flaticon.com/free-icons/statistics" title="statistics icons">Statistics icons created by srip - Flaticon</a>
