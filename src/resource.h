@@ -7,6 +7,9 @@
 #define MOUSE_STATS_TITLE_ASCII "mouseStats"
 #define MOUSE_STATS_TITLE (L"" MOUSE_STATS_TITLE_ASCII)
 
+#define VERSION_SEQUENCE      0,1
+#define VERSION_SEQUENCE_STR "0.1"
+
 
 #define IDM_EXIT 101
 #define IDM_MIN  102

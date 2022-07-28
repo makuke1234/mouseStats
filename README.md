@@ -36,3 +36,11 @@ The app should also be DPI-aware and use fluid design.
 # License
 
 This project uses the MIT license.
+
+
+# Credits
+
+Mouse icon:
+<a href="https://www.flaticon.com/free-icons/cursor" title="cursor icons">Cursor icons created by Freepik - Flaticon</a>
+Statistics icon:
+<a href="https://www.flaticon.com/free-icons/statistics" title="statistics icons">Statistics icons created by srip - Flaticon</a>

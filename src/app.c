@@ -7,8 +7,8 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 {
 	assert(This != NULL);
 	assert(argc > 0);
-	//assert(argv != NULL);
-	//assert(argv[0] != NULL);
+	assert(argv != NULL);
+	assert(argv[0] != NULL);
 
 	*This = (msdata_t){
 		.init         = false,
@@ -47,7 +47,7 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 	This->hwnd = CreateWindowExW(
 		0,
 		MOUSE_STATS_CLASS, MOUSE_STATS_TITLE,
-		msWS_BORDERLESS & ~WS_MAXIMIZEBOX,
+		msWS_BORDERLESS & (DWORD)(~WS_MAXIMIZEBOX),
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		400, 300,
 		NULL, NULL, GetModuleHandleW(NULL), This

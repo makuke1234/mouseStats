@@ -1,3 +1,38 @@
 #include "resource.h"
 
 CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "xpstyles.manifest"
+IDI_APPLICATION ICON "appicon.ico"
+
+#include <winver.h>
+VS_VERSION_INFO		VERSIONINFO
+FILEVERSION			VERSION_SEQUENCE
+PRODUCTVERSION		VERSION_SEQUENCE
+FILEFLAGSMASK		VS_FFI_FILEFLAGSMASK
+#ifdef _DEBUG
+	FILEFLAGS		VS_FF_DEBUG | VS_FF_PRERELEASE
+#else
+	FILEFLAGS		0
+#endif
+FILEOS				VOS_NT_WINDOWS32
+FILETYPE			VFT_APP
+FILESUBTYPE			VFT2_UNKNOWN
+BEGIN
+	BLOCK "StringFileInfo"
+	BEGIN
+		BLOCK "040904b0"
+		BEGIN
+			VALUE "CompanyName", "Maku Maku"
+			VALUE "FileDescription", "A way to track your mouse. Literally."
+			VALUE "FileVersion", VERSION_SEQUENCE_STR
+			VALUE "InternalName", "Win32App"
+			VALUE "LegalCopyright", "\xA92022 Maku Maku"
+			VALUE "OriginalFileName", "mouseStats.exe"
+			VALUE "ProductName", MOUSE_STATS_TITLE_ASCII
+			VALUE "ProductVersion", VERSION_SEQUENCE_STR
+		END
+	END
+	BLOCK "VarFileInfo"
+	BEGIN
+		VALUE "Translation", 0x409, 1200
+	END
+END

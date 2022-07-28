@@ -568,6 +568,8 @@ LRESULT CALLBACK mgui_btnOwnerDrawProc(
 	UINT_PTR uidsubclass, DWORD_PTR dwRefData
 )
 {
+	msUNUSED(uidsubclass);
+
 	mgui_btnBmps_t * restrict hbmps = (mgui_btnBmps_t *)dwRefData;
 	
 	BITMAP bitmap01;
@@ -616,7 +618,7 @@ LRESULT CALLBACK mgui_btnOwnerDrawProc(
 		case VK_TAB:
 			break;
 		case VK_RETURN:
-			SendMessageW(GetParent(hwnd), WM_COMMAND, GetMenu(hwnd), 0);
+			SendMessageW(GetParent(hwnd), WM_COMMAND, (WPARAM)GetMenu(hwnd), 0);
 			break;
 		case VK_SPACE:
 			hbmps->press = true;

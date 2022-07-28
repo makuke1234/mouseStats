@@ -1,10 +1,13 @@
 #include "winapi.h"
 
-bool ms_regClass(const wchar_t * restrict className, WNDPROC winProc)
+#pragma GCC diagnostic ignored "-Wcast-function-type"
+
+
+bool ms_regClass(const wchar * restrict className, WNDPROC winProc)
 {
 	return ms_regClassBg(className, winProc, GetSysColor(COLOR_3DFACE));
 }
-bool ms_regClassBg(const wchar_t * restrict className, WNDPROC winProc, COLORREF rgbColor)
+bool ms_regClassBg(const wchar * restrict className, WNDPROC winProc, COLORREF rgbColor)
 {
 	WNDCLASSEXW wc   = { 0 };
 	wc.cbSize        = sizeof wc;
@@ -117,12 +120,12 @@ bool ms_initSymbols(void)
 
 	HMODULE user32 = GetModuleHandleW(L"user32");
 
-	pfnGetDpiForSystem = (pfnGetDpiForSystem_t)GetProcAddress(user32, "GetDpiForSystem");
-	pfnGetDpiForWindow = (pfnGetDpiForWindow_t)GetProcAddress(user32, "GetDpiForWindow");
+	pfnGetDpiForSystem = FARPROC_cast(pfnGetDpiForSystem_t, GetProcAddress(user32, "GetDpiForSystem"));
+	pfnGetDpiForWindow = FARPROC_cast(pfnGetDpiForWindow_t, GetProcAddress(user32, "GetDpiForWindow"));
 
 	HMODULE comctl32 = GetModuleHandleW(L"Comctl32");
 
-	pfnDrawShadowText = (pfnDrawShadowText_t)GetProcAddress(comctl32, "DrawShadowText");
+	pfnDrawShadowText = FARPROC_cast(pfnDrawShadowText_t, GetProcAddress(comctl32, "DrawShadowText"));
 
 	s_init    = true;
 	s_success = (pfnGetDpiForSystem != NULL) && (pfnGetDpiForWindow != NULL) && (pfnDrawShadowText != NULL);
@@ -165,4 +168,6 @@ int ms_DrawShadowText(
 		iyOffset
 	) : 0;
 }
+
+#pragma GCC diagnostic pop
 
