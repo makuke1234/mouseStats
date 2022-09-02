@@ -29,7 +29,7 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
 	switch (msg)
 	{
-	case mh_MOUSEHOOK_MSG:
+	case WM_MOUSEHOOK_MSG:
 	{
 		mh_data_t data;
 
@@ -49,6 +49,9 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
 		break;
 	}
+	case WM_TRAYICON_MSG:
+		ti_context(&This->tidata, wp, lp);
+		break;
 	case WM_SYSCOMMAND:
 		if (!mgui_handleSystemMenu(hwnd, wp))
 		{
@@ -389,6 +392,17 @@ void mgui_handleCommand(HWND hwnd, WPARAM wp)
 		break;
 	case IDM_EXIT:
 		SendMessageW(hwnd, WM_CLOSE, 0, 0);
+		break;
+	case IDM_SHOW:
+		if (IsWindowVisible(hwnd))
+		{
+			ShowWindow(hwnd, SW_HIDE);
+		}
+		else
+		{
+			ShowWindow(hwnd, SW_SHOW);
+			SetForegroundWindow(hwnd);
+		}
 		break;
 	}
 }

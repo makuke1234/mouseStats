@@ -3,6 +3,7 @@
 
 #include "winapi.h"
 #include "error.h"
+#include "trayIcon.h"
 
 typedef struct msdata
 {
@@ -24,6 +25,8 @@ typedef struct msdata
 	HWND closeBtn, minBtn;
 
 	HWND testBtn;
+	
+	ti_data_t tidata;
 
 } msdata_t;
 

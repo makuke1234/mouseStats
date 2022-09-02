@@ -79,6 +79,20 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 	ShowWindow(This->hwnd, SW_SHOW);
 	UpdateWindow(This->hwnd);
 
+	if (!ti_create(
+		&This->tidata,
+		MOUSE_STATS_TIP,
+		MOUSE_STATS_TITLE,
+		This->hwnd,
+		LoadIconW(GetModuleHandleW(NULL), MAKEINTRESOURCEW(IDI_APPLICATION))
+	))
+	{
+		ePrint("Error creating tray icon!");
+		DestroyWindow(This->hwnd);
+		This->hwnd = NULL;
+		return false;
+	}
+
 	This->init = true;
 	return true;
 }
@@ -107,5 +121,7 @@ void ms_loop(msdata_t * restrict This)
 void ms_free(msdata_t * restrict This)
 {
 	mh_removeHook();
+	ti_destroy(&This->tidata);
+
 	This->init = false;
 }

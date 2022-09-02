@@ -5,7 +5,7 @@ static HWND s_mh_hwnd = NULL;
 
 LRESULT CALLBACK mh_mouseHookProc(int nCode, WPARAM wp, LPARAM lp)
 {
-	if ((nCode >= 0) && SendMessageW(s_mh_hwnd, mh_MOUSEHOOK_MSG, wp, lp))
+	if ((nCode >= 0) && SendMessageW(s_mh_hwnd, WM_MOUSEHOOK_MSG, wp, lp))
 	{
 		return 1;
 	}

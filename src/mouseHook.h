@@ -3,7 +3,7 @@
 
 #include "winapi.h"
 
-#define mh_MOUSEHOOK_MSG WM_USER
+#define WM_MOUSEHOOK_MSG WM_USER
 
 LRESULT CALLBACK mh_mouseHookProc(int nCode, WPARAM wp, LPARAM lp);
 HHOOK mh_setHook(HINSTANCE hInst, HWND hwnd);

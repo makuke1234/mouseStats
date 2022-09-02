@@ -1,11 +1,24 @@
 #include "trayIcon.h"
+#include "resource.h"
 
 static HMENU s_ti_createMenu()
 {
-	HMENU hmenu = CreateMenu();
+	HMENU hmenu = CreatePopupMenu();
 	
 	assert(hmenu != NULL);
 	assert(hmenu != INVALID_HANDLE_VALUE);
+	
+	
+	bool ret = AppendMenuW(hmenu, MF_STRING, IDM_SHOW, L"&Show/hide") &&
+	           SetMenuDefaultItem(hmenu, 0, IDM_SHOW) &&
+	           AppendMenuW(hmenu, MF_SEPARATOR, 0, NULL) &&
+	           AppendMenuW(hmenu, MF_STRING, IDM_EXIT, L"&Close");
+	
+	if (!ret)
+	{
+		DestroyMenu(hmenu);
+		return NULL;
+	}
 	
 	return hmenu;
 }
@@ -31,7 +44,7 @@ bool ti_create(ti_data_t * restrict This, const wchar * tipInfo, const wchar * d
 		.dwStateMask = 0,
 		.uVersion = NOTIFYICON_VERSION_4,
 		.dwInfoFlags = NIIF_NONE | NIIF_RESPECT_QUIET_TIME | NIIF_USER | NIIF_LARGE_ICON,
-		.guidItem = 0,
+		.guidItem = { 0 },
 		.hBalloonIcon = NULL
 	};
 	
@@ -40,14 +53,15 @@ bool ti_create(ti_data_t * restrict This, const wchar * tipInfo, const wchar * d
 	
 	This->hPopupMenu = s_ti_createMenu();
 	
-	return Shell_NotifyIconW(NIM_ADD, &This->nid) &&
+	return (This->hPopupMenu != NULL) && 
+	       Shell_NotifyIconW(NIM_ADD, &This->nid) &&
 	       Shell_NotifyIconW(NIM_SETVERSION, &This->nid);
 }
 bool ti_destroy(ti_data_t * restrict This)
 {
 	assert(This != NULL);
 	
-	DeleteObject(This->hPopupMenu);
+	DestroyMenu(This->hPopupMenu);
 	This->hPopupMenu = NULL;
 	
 	return Shell_NotifyIconW(NIM_DELETE, &This->nid);
@@ -56,10 +70,10 @@ bool ti_sendMessage(ti_data_t * restrict This, const wchar * msg, const wchar * 
 {
 	assert(This != NULL);
 	
-	(title != NULL) && wcscpy_s(This->nid.szInfoTitle, ARRAYSIZE(This->szInfoTitle), title);
+	(void)((title != NULL) && wcscpy_s(This->nid.szInfoTitle, ARRAYSIZE(This->nid.szInfoTitle), title));
 	wcscpy_s(This->nid.szInfo, ARRAYSIZE(This->nid.szInfo), msg != NULL ? msg : L"");
 	
-	DWORD icon = This->dwInfoFlags & NIIF_USER;
+	DWORD icon = This->nid.dwInfoFlags & NIIF_USER;
 	
 	switch (msgType)
 	{
@@ -80,9 +94,9 @@ bool ti_sendMessage(ti_data_t * restrict This, const wchar * msg, const wchar * 
 		break;
 	}
 	
-	This->dwInfoFlags ^= icon;
-	const bool ret = Shell_NotifyIconW(NIM_MODIFY, nid);
-	This->dwInfoFlags ^= icon;
+	This->nid.dwInfoFlags ^= icon;
+	const bool ret = Shell_NotifyIconW(NIM_MODIFY, &This->nid);
+	This->nid.dwInfoFlags ^= icon;
 	
 	return ret;
 }
@@ -94,9 +108,21 @@ bool ti_tipInfo(ti_data_t * restrict This, const wchar * restrict tipInfo)
 	
 	return Shell_NotifyIconW(NIM_MODIFY, &This->nid);
 }
-bool ti_context(ti_data_t * restrict This)
+bool ti_context(ti_data_t * restrict This, WPARAM wp, LPARAM lp)
 {
-	POINT p;
-	return GetCursorPos(&p) &&
-	       TrackPopupMenu(This->hPopupMenu, TPM_TOPALIGN | TPM_LEFTALIGN, p.x, p.y, 0, This->nid.hWnd, NULL);
+	(void)wp;
+	
+	switch (LOWORD(lp))
+	{
+	case WM_LBUTTONUP:
+		SendMessageW(This->nid.hWnd, WM_COMMAND, IDM_SHOW, 0);
+		return true;
+	case WM_RBUTTONUP:
+	case WM_CONTEXTMENU:
+		POINT p;
+		return GetCursorPos(&p) &&
+			   TrackPopupMenu(This->hPopupMenu, TPM_TOPALIGN | TPM_LEFTALIGN, p.x, p.y, 0, This->nid.hWnd, NULL);	
+	}
+	
+	return false;
 }
