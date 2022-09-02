@@ -33,11 +33,11 @@
 #define msWS_AERO_BORDERLESS  (WS_POPUP            | WS_THICKFRAME | WS_CAPTION | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX)
 #define msWS_BASIC_BORDERLESS (WS_POPUP            | WS_THICKFRAME              | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX)
 
-#define msWS_BORDERLESS (ms_compositionEnabled() ? msWS_AERO_BORDERLESS : msWS_BASIC_BORDERLESS)
+#define msWS_BORDERLESS (ms_isCompositionEnabled() ? msWS_AERO_BORDERLESS : msWS_BASIC_BORDERLESS)
 
 bool ms_regClass(const wchar * restrict className, WNDPROC winProc);
 bool ms_regClassBg(const wchar * restrict className, WNDPROC winProc, COLORREF rgbColor);
-bool ms_compositionEnabled(void);
+bool ms_isCompositionEnabled(void);
 bool ms_isMaximized(HWND hwnd);
 bool ms_isActive(HWND hwnd);
 

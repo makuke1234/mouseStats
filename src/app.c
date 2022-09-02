@@ -59,7 +59,7 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 	}
 
 	
-	if (ms_compositionEnabled())
+	if (ms_isCompositionEnabled())
 	{
 		const MARGINS shadow_state = { 1, 1, 1, 1 };
     	DwmExtendFrameIntoClientArea(This->hwnd, &shadow_state);
@@ -67,7 +67,7 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 	
 	SetWindowPos(This->hwnd, NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE);
 
-	This->mHook = mmh_setHook(GetModuleHandleW(NULL), This->hwnd);
+	This->mHook = mh_setHook(GetModuleHandleW(NULL), This->hwnd);
 	if (This->mHook == NULL)
 	{
 		ePrint("Error creating low-level mouse hook!");
@@ -106,6 +106,6 @@ void ms_loop(msdata_t * restrict This)
 
 void ms_free(msdata_t * restrict This)
 {
-	mmh_removeHook();
+	mh_removeHook();
 	This->init = false;
 }

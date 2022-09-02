@@ -10,8 +10,8 @@
 
 # Progress
 
-The project is currently under heavy development. The goal is to try a new way of creating
-sublime user interfaces by using borderless windows:
+The project is currently under heavy development. The goal is to try a new way (at least new to me)
+of creating sublime user interfaces by using borderless windows:
 
 
 ### Borderless window including a metro-style button

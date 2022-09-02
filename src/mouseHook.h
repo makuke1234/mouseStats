@@ -3,36 +3,36 @@
 
 #include "winapi.h"
 
-#define MMH_MOUSEHOOK_MSG WM_USER
+#define mh_MOUSEHOOK_MSG WM_USER
 
-LRESULT CALLBACK mmh_mouseHookProc(int nCode, WPARAM wp, LPARAM lp);
-HHOOK mmh_setHook(HINSTANCE hInst, HWND hwnd);
-void mmh_removeHook(void);
+LRESULT CALLBACK mh_mouseHookProc(int nCode, WPARAM wp, LPARAM lp);
+HHOOK mh_setHook(HINSTANCE hInst, HWND hwnd);
+void mh_removeHook(void);
 
-typedef enum mmh_type
+typedef enum mh_type
 {
-	mmh_lbdown,
-	mmh_lbup,
-	mmh_rbdown,
-	mmh_rbup,
-	mmh_move,
-	mmh_wheel,
-	mmh_hwheel,
+	mh_lbdown,
+	mh_lbup,
+	mh_rbdown,
+	mh_rbup,
+	mh_move,
+	mh_wheel,
+	mh_hwheel,
 
-	mmh_num_types
+	mh_num_types
 
-} mmh_type_e;
+} mh_type_e;
 
-typedef struct mmh_data
+typedef struct mh_data
 {
-	mmh_type_e eventType;
+	mh_type_e eventType;
 	POINT cursorPos;
 	int16_t wheelDelta, hwheelDelta;
 	DWORD timeStamp;
 
-} mmh_data_t;
+} mh_data_t;
 
-bool mmh_decode(mmh_data_t * restrict ptr, WPARAM wp, LPARAM lp);
-const char * mmh_eventName(mmh_type_e type);
+bool mh_decode(mh_data_t * restrict ptr, WPARAM wp, LPARAM lp);
+const char * mh_eventName(mh_type_e type);
 
 #endif

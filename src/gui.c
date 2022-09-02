@@ -29,16 +29,16 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
 	switch (msg)
 	{
-	case MMH_MOUSEHOOK_MSG:
+	case mh_MOUSEHOOK_MSG:
 	{
-		mmh_data_t data;
+		mh_data_t data;
 
 		// Print all information	
-		if (mmh_decode(&data, wp, lp))
+		if (mh_decode(&data, wp, lp))
 		{
 			printf(
 				"Event: %s; Pos: %ld, %ld; Wheel: %hd; Hwheel: %hd; Time: %ld\n",
-				mmh_eventName(data.eventType),
+				mh_eventName(data.eventType),
 				data.cursorPos.x,
 				data.cursorPos.y,
 				data.wheelDelta,
@@ -145,7 +145,7 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 			This->rclick
 		);
 	case WM_NCACTIVATE:
-		if (!ms_compositionEnabled())
+		if (!ms_isCompositionEnabled())
 		{
 			return 1;
 		}

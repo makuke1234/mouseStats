@@ -26,7 +26,7 @@ bool ms_regClassBg(const wchar * restrict className, WNDPROC winProc, COLORREF r
 
 	return RegisterClassExW(&wc) != 0;
 }
-bool ms_compositionEnabled(void)
+bool ms_isCompositionEnabled(void)
 {
 	BOOL compEnabled = FALSE;
 	bool result = (DwmIsCompositionEnabled(&compEnabled) == S_OK);
