@@ -17,20 +17,12 @@ of creating sublime user interfaces by using borderless windows:
 ### Borderless window including a metro-style button
 ![Borderless](./img/borderless.png)
 
-### Close button highlighted:
-![Close high](./img/closehigh.png)
-
-### Minimize button highlighted:
-![Minimize high](./img/minhigh.png)
-
-### Metro-style button highlighted:
-![Metro high](./img/metrohigh.png)
-
-### Metro-style button pressed:
-![Metro pressed](./img/metropress.png)
-
-
-The app should also be DPI-aware and use fluid design.
+* [x] Written in pure C
+* [x] Uses "raw" Win32 API
+* [x] DPI-aware
+* [x] Fluid design
+* [x] Automatic data logging
+* [ ] Highly customizable statistics
 
 
 # License
