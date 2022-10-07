@@ -4,6 +4,9 @@
 #include "winapi.h"
 #include "error.h"
 #include "trayIcon.h"
+#include "mouseHook.h"
+
+#define DEFAULT_LOG_PATH L"mouselog.bin"
 
 typedef struct msdata
 {
@@ -27,6 +30,9 @@ typedef struct msdata
 	HWND testBtn;
 	
 	ti_data_t tidata;
+	
+	wchar * logpath;
+	mh_records_t mouseData;
 
 } msdata_t;
 

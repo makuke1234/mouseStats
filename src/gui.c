@@ -33,10 +33,10 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 	{
 		mh_data_t data;
 
-		// Print all information	
 		if (mh_decode(&data, wp, lp))
 		{
-			printf(
+			// Print all information	
+			/*printf(
 				"Event: %s; Pos: %ld, %ld; Wheel: %hd; Hwheel: %hd; Time: %ld\n",
 				mh_eventName(data.eventType),
 				data.cursorPos.x,
@@ -44,7 +44,13 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 				data.wheelDelta,
 				data.hwheelDelta,
 				data.timeStamp
-			);
+			);*/
+			
+			// Save information to disk
+			if (!mh_recs_add(&This->mouseData, &data))
+			{
+				ePrint("Error adding record to statistics!");
+			}
 		}
 
 		break;

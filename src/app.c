@@ -66,6 +66,18 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 	}
 	
 	SetWindowPos(This->hwnd, NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE);
+	
+	This->logpath = wcsdup(DEFAULT_LOG_PATH);
+	if (This->logpath == NULL)
+	{
+		ePrint("Error allocating memory for path variable!");
+		return false;
+	}
+	if (!mh_recs_create(&This->mouseData, This->logpath))
+	{
+		ePrint("Error initializing mouse logging!");
+		return false;
+	}
 
 	This->mHook = mh_setHook(GetModuleHandleW(NULL), This->hwnd);
 	if (This->mHook == NULL)
@@ -122,6 +134,13 @@ void ms_free(msdata_t * restrict This)
 {
 	mh_removeHook();
 	ti_destroy(&This->tidata);
+	
+	if (!mh_recs_destroy(&This->mouseData))
+	{
+		ePrint("Error saving logging data to disk!");
+	}
+	free(This->logpath);
+	This->logpath = NULL;
 
 	This->init = false;
 }

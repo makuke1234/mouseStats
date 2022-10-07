@@ -15,14 +15,16 @@
 #include <windowsx.h>
 #include <CommCtrl.h>
 #include <dwmapi.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdarg.h>
+#include <stdbool.h>
 #include <time.h>
 #include <math.h>
 #include <assert.h>
-#include <stdbool.h>
 
 #include "comTypes.h"
 
