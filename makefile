@@ -42,7 +42,7 @@ $(OBJ)/%.rc.d.o: $(SRC)/%.rc $(OBJ)
 $(OBJ)/%.o: $(SRC)/% $(OBJ)
 	$(CC) -c $< -o $@ $(CDEFFLAGS) $(RelFlags)
 $(OBJ)/%.d.o: $(SRC)/% $(OBJ)
-	$(CC) -c $< -o $@ $(CDEFFLAGS) $(DebFlags)
+	$(CC) -c $< -o $@ $(CDEFFLAGS) $(DebFlags) -fstack-usage
 
 $(OBJ):
 	mkdir $(OBJ)

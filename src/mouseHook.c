@@ -113,7 +113,7 @@ const char * mh_eventName(mh_type_e type)
 }
 
 
-#define S_RECTIMERTHREAD_STACK_SIZE 1000
+#define S_RECTIMERTHREAD_STACK_SIZE 150
 static DWORD WINAPI s_recTimerThread(LPVOID args);
 
 static inline HANDLE s_recOpenWritable(mh_rectimer_t * restrict rectimer)
@@ -178,6 +178,7 @@ static inline const mh_data_t * s_getLastRecord(const mh_records_t * restrict re
 		return &record->entries[record->numEntries - 1];
 	}
 }
+
 
 static DWORD WINAPI s_recTimerThread(LPVOID args)
 {
