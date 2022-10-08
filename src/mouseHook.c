@@ -113,52 +113,16 @@ const char * mh_eventName(mh_type_e type)
 }
 
 
-static struct mh_rectimer s_rectimer;
-
 #define S_RECTIMERTHREAD_STACK_SIZE 1000
 static DWORD WINAPI s_recTimerThread(LPVOID args);
 
-static inline bool s_createRecTimer(void)
+static inline HANDLE s_recOpenWritable(mh_rectimer_t * restrict rectimer)
 {
-	if (s_rectimer.init)
-	{
-		return true;
-	}
-	
-	InitializeCriticalSection(&s_rectimer.critSect);
-	InitializeConditionVariable(&s_rectimer.cv);
-
-	s_rectimer.killThread = false;
-	s_rectimer.writeAll   = false;
-	s_rectimer.recs       = NULL;
-	s_rectimer.path       = NULL;
-	
-	// Create Thread
-	s_rectimer.hthread = CreateThread(
-		NULL,
-		S_RECTIMERTHREAD_STACK_SIZE * sizeof(size_t),
-		&s_recTimerThread,
-		NULL,
-		0,
-		NULL
-	);
-	
-	if (s_rectimer.hthread == NULL)
-	{
-		DeleteCriticalSection(&s_rectimer.critSect);
-	}
-	
-	s_rectimer.init = true;
-	
-	return true;
-}
-static inline HANDLE s_recOpenWritable(void)
-{
-	assert(s_rectimer.path != NULL);
+	assert(rectimer->path != NULL);
 	
 	// Open file
 	HANDLE hfile = CreateFileW(
-		s_rectimer.path,
+		rectimer->path,
 		GENERIC_WRITE,
 		0,
 		NULL,
@@ -200,12 +164,9 @@ static inline bool s_recWrite(HANDLE hfile, const void * restrict data, size_t d
 		NULL
 	);
 }
-
-static inline const mh_data_t * s_getLastRecord(void)
+static inline const mh_data_t * s_getLastRecord(const mh_records_t * restrict recs)
 {
-	assert(s_rectimer.recs != NULL);
-	
-	const mh_records_t * recs = s_rectimer.recs;
+	assert(recs != NULL);
 	
 	if (recs->numRecords == 0)
 	{
@@ -213,176 +174,171 @@ static inline const mh_data_t * s_getLastRecord(void)
 	}
 	else
 	{
-		const mh_record_t * record = &recs->records[recs->numRecords - 1];
+		const mh_record_t * restrict record = &recs->records[recs->numRecords - 1];
 		return &record->entries[record->numEntries - 1];
 	}
-}
-static inline DWORD s_getTimeStamp(void)
-{
-	return GetTickCount();
 }
 
 static DWORD WINAPI s_recTimerThread(LPVOID args)
 {
-	(void)args;
+	mh_records_t * restrict recs = (mh_records_t *)args;
+	assert(recs != NULL);
+	mh_rectimer_t * restrict rectimer = &recs->rectimer;
 	
-	while (!s_rectimer.killThread)
+	while (!rectimer->killThread)
 	{
-		if (s_rectimer.recs == NULL)
-		{
-			Sleep(1);
-			continue;
-		}
+		EnterCriticalSection(&rectimer->critSect);
 		
-		EnterCriticalSection(&s_rectimer.critSect);
+		const size_t prevRecords = recs->numRecords;
+		const size_t prevEntries = (recs->records != NULL) ? recs->records[prevRecords - 1].numEntries : 0;
 		
-		const size_t prevRecords = s_rectimer.recs->numRecords;
-		const size_t prevEntries = (s_rectimer.recs->records != NULL) ? s_rectimer.recs->records[prevRecords - 1].numEntries : 0;
-		
-		LeaveCriticalSection(&s_rectimer.critSect);
+		LeaveCriticalSection(&rectimer->critSect);
 		
 		do
 		{
-			SleepConditionVariableCS(&s_rectimer.cv, &s_rectimer.critSect, (DWORD)(1000.f * RECORDS_TIME_THRESHOLD));
+			SleepConditionVariableCS(&rectimer->cv, &rectimer->critSect, (DWORD)(1000.f * RECORDS_TIME_THRESHOLD));
 		
-		} while ((s_rectimer.recs->numRecords == prevRecords) &&
-		       (  ( (s_rectimer.recs->records != NULL) && (s_rectimer.recs->records[prevRecords - 1].numEntries == prevEntries) ) ||
-			        (s_rectimer.recs->records == NULL)
+		} while ((recs->numRecords == prevRecords) &&
+		       (  ( (recs->records != NULL) && (recs->records[prevRecords - 1].numEntries == prevEntries) ) ||
+			        (recs->records == NULL)
 			   )
 		);
 		
 		// Get current time stamp
-		const mh_data_t * restrict lastrecord = s_getLastRecord();
+		const mh_data_t * restrict lastrecord = s_getLastRecord(recs);
 		if ((lastrecord != NULL) && ((lastrecord->timeStamp - GetTickCount()) > (DWORD)(1000.0f * RECORDS_TIME_THRESHOLD)))
 		{
-			s_rectimer.writeAll = true;
+			rectimer->writeAll = true;
 		}
 
 		// Save data to disk
 		
 		// Copy to local memory
-		EnterCriticalSection(&s_rectimer.critSect);
+		EnterCriticalSection(&rectimer->critSect);
 		
-		s_rectimer.recs->isCopying = true;
-		s_rectimer.recs->numWasInCopy = s_rectimer.recs->numRecsInCopy;
+		recs->isCopying = true;
+		recs->numWasInCopy = recs->numRecsInCopy;
 		
-		LeaveCriticalSection(&s_rectimer.critSect);
+		LeaveCriticalSection(&rectimer->critSect);
 		
-		const size_t numRecstowrite = s_rectimer.recs->numRecsInCopy - (s_rectimer.recs->copy[s_rectimer.recs->numRecsInCopy - 1].numEntries != MAX_ENTRIES_PER_RECORD);
+		const size_t numRecstowrite = recs->numRecsInCopy - (recs->copy[recs->numRecsInCopy - 1].numEntries != MAX_ENTRIES_PER_RECORD);
 		// Write to disk
-		uint64_t writableNum = (uint64_t)(s_rectimer.writeAll ? s_rectimer.recs->numRecsInCopy : numRecstowrite);
+		uint64_t writableNum = (uint64_t)(rectimer->writeAll ? recs->numRecsInCopy : numRecstowrite);
 		
-		HANDLE hfile = s_recOpenWritable();
+		HANDLE hfile = s_recOpenWritable(rectimer);
 		if (hfile == INVALID_HANDLE_VALUE)
 		{
-			EnterCriticalSection(&s_rectimer.critSect);
-			s_rectimer.recs->isCopying = false;
-			LeaveCriticalSection(&s_rectimer.critSect);
+			EnterCriticalSection(&rectimer->critSect);
+			recs->isCopying = false;
+			LeaveCriticalSection(&rectimer->critSect);
 			
 			continue;
 		}
 		
 		s_recWrite(hfile, &writableNum, sizeof(uint64_t));
-		s_recWrite(hfile, s_rectimer.recs->copy, numRecstowrite * sizeof(mh_record_t));
+		s_recWrite(hfile, recs->copy, numRecstowrite * sizeof(mh_record_t));
 		
 		// Shift data to front
-		if (s_rectimer.recs->numRecsInCopy != numRecstowrite)
+		if (recs->numRecsInCopy != numRecstowrite)
 		{
-			if (s_rectimer.writeAll)
+			if (rectimer->writeAll)
 			{
-				s_rectimer.writeAll = false;
+				rectimer->writeAll = false;
 				// Write last record to disk
-				const mh_record_t * restrict prec = &s_rectimer.recs->copy[s_rectimer.recs->numWasInCopy - 1];
+				const mh_record_t * restrict prec = &recs->copy[recs->numWasInCopy - 1];
 				s_recWrite(hfile, prec, sizeof(ENTRY_SIZE_T) + prec->numEntries * sizeof(mh_data_t));
 				
-				s_rectimer.recs->numRecsInCopy = 0;
+				recs->numRecsInCopy = 0;
 			}
 			else
 			{
-				s_rectimer.recs->numRecsInCopy = 1;
+				recs->numRecsInCopy = 1;
 			}
 		}
 		else
 		{
-			s_rectimer.recs->numRecsInCopy = 0;
+			recs->numRecsInCopy = 0;
 		}
 		
 		CloseHandle(hfile);
 		
-		EnterCriticalSection(&s_rectimer.critSect);
+		EnterCriticalSection(&rectimer->critSect);
 		
 		// Give control back
-		s_rectimer.recs->isCopying = false;
-		WakeAllConditionVariable(&s_rectimer.readycv);
+		recs->isCopying = false;
+		WakeAllConditionVariable(&rectimer->readycv);
 		
-		LeaveCriticalSection(&s_rectimer.critSect);
+		LeaveCriticalSection(&rectimer->critSect);
 	}
 	
 	return 0;
 }
 
-bool mh_timer_set(struct mh_records * restrict recs, const wchar * restrict path)
+bool mh_timer_create(mh_records_t * restrict recs, const wchar * restrict path)
 {
 	assert(recs != NULL);
 	assert(path != NULL);
 	
-	if (!s_createRecTimer())
+	mh_rectimer_t * restrict rectimer = &recs->rectimer;
+	
+	if (rectimer->init)
 	{
-		return false;
+		return true;
 	}
-	else if (s_rectimer.recs != NULL)
+	
+	rectimer->killThread = false;
+	rectimer->writeAll   = false;
+	rectimer->path       = wcsdup(path);
+	
+	if (rectimer->path == NULL)
 	{
 		return false;
 	}
 	
-	s_rectimer.path = wcsdup(path);
-	if (s_rectimer.path == NULL)
+	InitializeCriticalSection(&rectimer->critSect);
+	InitializeConditionVariable(&rectimer->cv);
+	InitializeConditionVariable(&rectimer->readycv);
+	
+	// Create Thread
+	rectimer->hthread = CreateThread(
+		NULL,
+		S_RECTIMERTHREAD_STACK_SIZE * sizeof(size_t),
+		&s_recTimerThread,
+		recs,
+		0,
+		NULL
+	);
+	
+	if (rectimer->hthread == NULL)
 	{
-		return false;
+		DeleteCriticalSection(&rectimer->critSect);
 	}
-	s_rectimer.recs = recs;
+	
+	rectimer->init = true;
 	
 	return true;
 }
-void mh_timer_destroy(void)
+void mh_timer_destroy(mh_records_t * restrict recs)
 {
-	if (s_rectimer.init)
+	assert(recs != NULL);
+	
+	mh_rectimer_t * restrict rectimer = &recs->rectimer;
+	
+	if (rectimer->init)
 	{
-		s_rectimer.killThread = true;
-		WakeAllConditionVariable(&s_rectimer.cv);
-		WaitForSingleObject(s_rectimer.hthread, INFINITE);
+		rectimer->killThread = true;
+		WakeAllConditionVariable(&rectimer->cv);
+		WaitForSingleObject(rectimer->hthread, INFINITE);
 		
 		// Delete critical section
-		DeleteCriticalSection(&s_rectimer.critSect);
+		DeleteCriticalSection(&rectimer->critSect);
 		
-		s_rectimer.init = false;
-		free(s_rectimer.path);
-		s_rectimer.path = NULL;
+		rectimer->init = false;
+		free(rectimer->path);
+		rectimer->path = NULL;
 	}
 }
-bool mh_timer_todisk(bool writeAll)
-{
-	if (s_rectimer.init && (s_rectimer.recs != NULL))
-	{
-		s_rectimer.writeAll = writeAll;
-		WakeAllConditionVariable(&s_rectimer.cv);
-		
-		if (s_rectimer.recs->isCopying)
-		{
-			SleepConditionVariableCS(&s_rectimer.readycv, &s_rectimer.critSect, 1000);
-		}
-		if (s_rectimer.recs->isCopying)
-		{
-			return false;
-		}
-		
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
+
 
 
 bool mh_rec_add(mh_record_t * restrict record, const mh_data_t * restrict entry)
@@ -403,6 +359,8 @@ bool mh_rec_add(mh_record_t * restrict record, const mh_data_t * restrict entry)
 	}
 }
 
+
+
 bool mh_recs_create(mh_records_t * restrict recs, const wchar * restrict path)
 {
 	assert(recs != NULL);
@@ -417,18 +375,14 @@ bool mh_recs_create(mh_records_t * restrict recs, const wchar * restrict path)
 		.isCopying     = false
 	};
 	
-	return mh_timer_set(recs, path);
+	return mh_timer_create(recs, path);
 }
 bool mh_recs_destroy(mh_records_t * restrict recs)
 {
 	assert(recs != NULL);
 	
-	bool suc = true;
-	if (s_rectimer.recs == recs)
-	{
-		suc = mh_timer_todisk(true);
-		mh_timer_destroy();
-	}
+	bool suc = mh_recs_todisk(recs, true);
+	mh_timer_destroy(recs);
 	
 	free(recs->records);
 	free(recs->copy);
@@ -462,48 +416,49 @@ static inline bool s_addToRecs(mh_record_t * restrict prec, size_t * restrict pn
 		return true;
 	}
 }
-
 bool mh_recs_add(mh_records_t * restrict recs, const mh_data_t * restrict entry)
 {
 	assert(recs != NULL);
 	assert(entry != NULL);
 	
+	mh_rectimer_t * restrict rectimer = &recs->rectimer;
+	
 	// Resize
 	if ((recs->numRecords + 1) >= recs->maxRecords)
 	{
 		const size_t tempmax = (recs->numRecords + 1) * 2;
-		EnterCriticalSection(&s_rectimer.critSect);
-		mh_record_t * temp = (mh_record_t *)realloc(recs->records, tempmax * sizeof(mh_record_t));
+		EnterCriticalSection(&rectimer->critSect);
+		mh_record_t * restrict temp = (mh_record_t *)realloc(recs->records, tempmax * sizeof(mh_record_t));
 		
 		if (temp == NULL)
 		{
-			LeaveCriticalSection(&s_rectimer.critSect);
+			LeaveCriticalSection(&rectimer->critSect);
 			return NULL;
 		}
 		
 		recs->records    = temp;
 		recs->maxRecords = tempmax;
 		
-		LeaveCriticalSection(&s_rectimer.critSect);
+		LeaveCriticalSection(&rectimer->critSect);
 		
-		EnterCriticalSection(&s_rectimer.critSect);
+		EnterCriticalSection(&rectimer->critSect);
 		if (!recs->isCopying)
 		{
 			temp = (mh_record_t *)realloc(recs->copy, tempmax * sizeof(mh_record_t));
 			if (temp == NULL)
 			{
-				LeaveCriticalSection(&s_rectimer.critSect);
+				LeaveCriticalSection(&rectimer->critSect);
 				return NULL;
 			}
 			
 			recs->copy = temp;
 		}
-		LeaveCriticalSection(&s_rectimer.critSect);
+		LeaveCriticalSection(&rectimer->critSect);
 	}
 	
 	// Write to records
 	
-	EnterCriticalSection(&s_rectimer.critSect);
+	EnterCriticalSection(&rectimer->critSect);
 	if (!recs->isCopying)
 	{
 		if (recs->numRecsInCopy != recs->numRecords)
@@ -540,7 +495,34 @@ bool mh_recs_add(mh_records_t * restrict recs, const mh_data_t * restrict entry)
 	
 	s_addToRecs(recs->records, &recs->numRecords, entry);
 	
-	LeaveCriticalSection(&s_rectimer.critSect);
+	LeaveCriticalSection(&rectimer->critSect);
 	
 	return true;
+}
+bool mh_recs_todisk(mh_records_t * restrict recs, bool writeAll)
+{
+	assert(recs != NULL);
+	
+	mh_rectimer_t * restrict rectimer = &recs->rectimer;
+	
+	if (rectimer->init && (recs != NULL))
+	{
+		rectimer->writeAll = writeAll;
+		WakeAllConditionVariable(&rectimer->cv);
+		
+		if (recs->isCopying)
+		{
+			SleepConditionVariableCS(&rectimer->readycv, &rectimer->critSect, 1000);
+		}
+		if (recs->isCopying)
+		{
+			return false;
+		}
+		
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }

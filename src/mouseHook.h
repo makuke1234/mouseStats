@@ -38,7 +38,7 @@ const char * mh_eventName(mh_type_e type);
 
 struct mh_records;
 
-struct mh_rectimer
+typedef struct mh_rectimer
 {
 	bool init, killThread, writeAll;
 	// condition variable
@@ -48,13 +48,12 @@ struct mh_rectimer
 	// thread
 	HANDLE hthread;
 	
-	struct mh_records * recs;
 	wchar * path;
-};
 
-bool mh_timer_set(struct mh_records * restrict recs, const wchar * restrict path);
-void mh_timer_destroy(void);
-bool mh_timer_todisk(bool writeAll);
+} mh_rectimer_t;
+
+bool mh_timer_create(struct mh_records * restrict recs, const wchar * restrict path);
+void mh_timer_destroy(struct mh_records * restrict recs);
 
 #define MAX_ENTRIES_PER_RECORD 16384
 
@@ -92,6 +91,8 @@ typedef struct mh_records
 	size_t numRecsInCopy, numWasInCopy;
 	mh_record_t * copy;
 	bool isCopying;
+
+	mh_rectimer_t rectimer;
 	
 } mh_records_t;
 
@@ -99,7 +100,16 @@ bool mh_recs_create(mh_records_t * restrict recs, const wchar * restrict path);
 bool mh_recs_destroy(mh_records_t * restrict recs);
 
 bool mh_recs_add(mh_records_t * restrict recs, const mh_data_t * restrict entry);
+bool mh_recs_todisk(mh_records_t * restrict recs, bool writeAll);
 
+typedef struct mh_statistics
+{
+	size_t numRecords;
+	mh_record_t * records;
+
+} mh_statistics_t;
+
+bool mh_statistics_create(mh_statistics_t * restrict stats);
 
 
 #endif
