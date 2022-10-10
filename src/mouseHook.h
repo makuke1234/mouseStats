@@ -23,14 +23,44 @@ typedef enum mh_type
 
 } mh_type_e;
 
+#pragma pack(push, 1)
+
+typedef struct mh_time
+{
+	// Seconds since 1.1.2000 00:00:00
+	uint32_t secs;
+
+} mh_time_t;
+
+#pragma pack(pop)
+
+mh_time_t mh_tm_fromTicks(DWORD ticks);
+mh_time_t mh_tm_fromTicks64(ULONGLONG ticks);
+mh_time_t mh_tm_fromDate(
+	uint8_t day, uint8_t month, uint16_t year,
+	uint8_t hour, uint8_t minute, uint8_t second
+);
+mh_time_t mh_tm_fromString(const char * restrict str);
+mh_time_t mh_tm_fromSysTime(const SYSTEMTIME * restrict st);
+mh_time_t mh_tm_fromCurrent(void);
+
+DWORD mh_tm_toTicks(mh_time_t tm);
+ULONGLONG mh_tm_toTicks64(mh_time_t tm);
+SYSTEMTIME mh_tm_toSysTime(mh_time_t tm);
+
+
+#pragma pack(push, 1)
+
 typedef struct mh_data
 {
-	mh_type_e eventType;
+	uint8_t eventType;
 	POINT cursorPos;
 	int16_t wheelDelta, hwheelDelta;
-	DWORD timeStamp;
+	mh_time_t timeStamp;
 
 } mh_data_t;
+
+#pragma pack(pop)
 
 bool mh_decode(mh_data_t * restrict ptr, WPARAM wp, LPARAM lp);
 const char * mh_eventName(mh_type_e type);
@@ -40,7 +70,8 @@ struct mh_records;
 
 typedef struct mh_rectimer
 {
-	bool init, killThread, writeAll;
+	uint16_t init:1, killThread:1, writeAll:1;
+	uint16_t errcounter:13;
 	// condition variable
 	CRITICAL_SECTION critSect;
 	CONDITION_VARIABLE cv, readycv;
@@ -82,6 +113,7 @@ typedef struct mh_record
 bool mh_rec_add(mh_record_t * restrict record, const mh_data_t * restrict entry);
 
 #define RECORDS_TIME_THRESHOLD 60.0f
+#define RECORDS_WRITE_ERROR_THRESHOLD 10
 
 typedef struct mh_records
 {
@@ -105,11 +137,29 @@ bool mh_recs_todisk(mh_records_t * restrict recs, bool writeAll);
 typedef struct mh_statistics
 {
 	size_t numRecords;
-	mh_record_t * records;
+	mh_data_t * records;
+	
+	HANDLE hfile;
 
 } mh_statistics_t;
 
-bool mh_statistics_create(mh_statistics_t * restrict stats);
+bool mh_statistics_create(mh_statistics_t * restrict stats, mh_records_t * restrict recs);
+void mh_statistics_destroy(mh_statistics_t * restrict stats);
+
+bool mh_statistics_load(
+	mh_statistics_t * restrict stats,
+	mh_time_t stime,
+	mh_time_t etime
+);
+bool mh_statistics_loadAll(mh_statistics_t * restrict stats);
+/**
+ * @description Unloads statistics data from memory
+ * @param stats Pointer to statistics structure
+ * @return true  Unloading was successful
+ * @return false The data was already unloaded/not loaded at all
+ */
+bool mh_statistics_unload(mh_statistics_t * restrict stats);
+
 
 
 #endif

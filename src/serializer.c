@@ -116,10 +116,13 @@ bool ser_deserialize(
 	
 	assert(numItems > 0);
 	
-	*baseaddress = malloc(objSize * numItems);
 	if ((*baseaddress) == NULL)
 	{
-		return false;
+		*baseaddress = malloc(objSize * numItems);
+		if ((*baseaddress) == NULL)
+		{
+			return false;
+		}
 	}
 	
 	if (!indexesPerObj)
