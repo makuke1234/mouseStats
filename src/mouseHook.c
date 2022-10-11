@@ -357,17 +357,24 @@ static inline HANDLE s_recOpenReadable(const wchar * restrict path)
 	);
 }
 
-static inline bool s_dataWrite(HANDLE hfile, const void * restrict data, size_t objSize, size_t numObjects)
+static inline bool s_dataWrite(HANDLE hfile, const void * restrict data, size_t objSize)
 {
 	assert(hfile != INVALID_HANDLE_VALUE);
 	assert(data != NULL);
 	assert(objSize > 0);
-	assert(numObjects > 0);
+	
+	//printf("%zu bytes to write\n", objSize);
+	/*for (size_t i = 0; i < objSize; ++i)
+	{
+		printf("%02X ", ((uint8_t *)data)[i]);
+	}
+	putchar('\n');
+	*/
 	
 	return ser_serialize(
 		data,
 		objSize,
-		numObjects,
+		1,
 		0,
 		hfile,
 		&ser_winFileWriter,
@@ -407,9 +414,9 @@ static inline const mh_data_t * s_getLastRecord(const mh_records_t * restrict re
 
 static DWORD WINAPI s_recTimerThread(LPVOID args)
 {
-	mh_records_t * restrict recs = (mh_records_t *)args;
+	mh_records_t * recs = (mh_records_t *)args;
 	assert(recs != NULL);
-	mh_rectimer_t * restrict rectimer = &recs->rectimer;
+	mh_rectimer_t * rectimer = &recs->rectimer;
 	
 	while (!rectimer->killThread)
 	{
@@ -423,12 +430,14 @@ static DWORD WINAPI s_recTimerThread(LPVOID args)
 		do
 		{
 			SleepConditionVariableCS(&rectimer->cv, &rectimer->critSect, (DWORD)(1000.f * RECORDS_TIME_THRESHOLD));
-		
-		} while ((recs->numRecords == prevRecords) &&
-		       (  ( (recs->records != NULL) && (recs->records[prevRecords - 1].numEntries == prevEntries) ) ||
-			        (recs->records == NULL)
-			   )
+		} while (
+		    !rectimer->killThread &&
+			(recs->numRecords == prevRecords) &&
+		    ( ( (recs->records != NULL) && (recs->records[prevRecords - 1].numEntries == prevEntries) ) ||
+			  (recs->records == NULL)
+			)
 		);
+		
 		
 		// Get current time stamp
 		const mh_data_t * restrict lastrecord = s_getLastRecord(recs);
@@ -451,6 +460,14 @@ static DWORD WINAPI s_recTimerThread(LPVOID args)
 		// Write to disk
 		const uint64_t writableNum = (uint64_t)(rectimer->writeAll ? recs->numRecsInCopy : numRecstowrite);
 		
+		if ((writableNum == 0) || ((writableNum == 1) && (recs->copy[0].numEntries == 0)))
+		{
+			rectimer->writeAll = false;
+			WakeAllConditionVariable(&rectimer->readycv);
+			LeaveCriticalSection(&rectimer->critSect);
+			continue;
+		}
+		
 		HANDLE hfile = s_recOpenWritable(rectimer->path);
 		if (hfile == INVALID_HANDLE_VALUE)
 		{
@@ -471,12 +488,12 @@ static DWORD WINAPI s_recTimerThread(LPVOID args)
 			rectimer->errcounter = 0;
 		}
 		
-		s_dataWrite(hfile, &writableNum, sizeof(uint64_t), 1);
+		s_dataWrite(hfile, &writableNum, sizeof(uint64_t));
 		for (size_t i = 0; i < numRecstowrite; ++i)
 		{
 			const mh_record_t * restrict prec = &recs->copy[i];
-			s_dataWrite(hfile, &prec->numEntries, sizeof(ENTRY_SIZE_T), 1);
-			s_dataWrite(hfile, prec->entries, prec->numEntries * sizeof(mh_data_t), 1);		
+			s_dataWrite(hfile, &prec->numEntries, sizeof(ENTRY_SIZE_T));
+			s_dataWrite(hfile, prec->entries, prec->numEntries * sizeof(mh_data_t));		
 		}
 		
 		// Shift data to front
@@ -484,11 +501,10 @@ static DWORD WINAPI s_recTimerThread(LPVOID args)
 		{
 			if (rectimer->writeAll)
 			{
-				rectimer->writeAll = false;
 				// Write last record to disk
 				const mh_record_t * restrict prec = &recs->copy[recs->numWasInCopy - 1];
-				s_dataWrite(hfile, &prec->numEntries, sizeof(ENTRY_SIZE_T), 1);
-				s_dataWrite(hfile, prec->entries, prec->numEntries * sizeof(mh_data_t), 1);
+				s_dataWrite(hfile, &prec->numEntries, sizeof(ENTRY_SIZE_T));
+				s_dataWrite(hfile, prec->entries, prec->numEntries * sizeof(mh_data_t));
 				
 				recs->numRecsInCopy = 0;
 			}
@@ -501,6 +517,7 @@ static DWORD WINAPI s_recTimerThread(LPVOID args)
 		{
 			recs->numRecsInCopy = 0;
 		}
+		rectimer->writeAll = false;
 		
 		CloseHandle(hfile);
 		
@@ -513,6 +530,7 @@ static DWORD WINAPI s_recTimerThread(LPVOID args)
 		LeaveCriticalSection(&rectimer->critSect);
 	}
 	
+	rectimer->hthread = NULL;
 	return 0;
 }
 
@@ -521,7 +539,7 @@ bool mh_timer_create(mh_records_t * restrict recs, const wchar * restrict path)
 	assert(recs != NULL);
 	assert(path != NULL);
 	
-	mh_rectimer_t * restrict rectimer = &recs->rectimer;
+	mh_rectimer_t * rectimer = &recs->rectimer;
 	
 	if (rectimer->init)
 	{
@@ -555,23 +573,37 @@ bool mh_timer_create(mh_records_t * restrict recs, const wchar * restrict path)
 	if (rectimer->hthread == NULL)
 	{
 		DeleteCriticalSection(&rectimer->critSect);
+		free(rectimer->path);
+		return false;
 	}
 	
 	rectimer->init = true;
 	
 	return true;
 }
-void mh_timer_destroy(mh_records_t * restrict recs)
+bool mh_timer_destroy(mh_records_t * restrict recs)
 {
 	assert(recs != NULL);
 	
-	mh_rectimer_t * restrict rectimer = &recs->rectimer;
+	mh_rectimer_t * rectimer = &recs->rectimer;
 	
 	if (rectimer->init)
 	{
+		mh_recs_todisk(recs, true);
+		
 		rectimer->killThread = true;
 		WakeAllConditionVariable(&rectimer->cv);
-		WaitForSingleObject(rectimer->hthread, INFINITE);
+		LeaveCriticalSection(&rectimer->critSect);
+		
+		if (rectimer->hthread != NULL)
+		{
+			WaitForSingleObject(rectimer->hthread, 10000);
+			if (rectimer->hthread != NULL)
+			{
+				// Kill thread
+				TerminateThread(rectimer->hthread, 0);
+			}
+		}
 		
 		// Delete critical section
 		DeleteCriticalSection(&rectimer->critSect);
@@ -580,6 +612,8 @@ void mh_timer_destroy(mh_records_t * restrict recs)
 		free(rectimer->path);
 		rectimer->path = NULL;
 	}
+	
+	return true;
 }
 
 
@@ -624,8 +658,7 @@ bool mh_recs_destroy(mh_records_t * restrict recs)
 {
 	assert(recs != NULL);
 	
-	bool suc = mh_recs_todisk(recs, true);
-	mh_timer_destroy(recs);
+	bool suc = mh_timer_destroy(recs);
 	
 	free(recs->records);
 	free(recs->copy);
@@ -646,12 +679,14 @@ static inline bool s_addToRecs(mh_record_t * restrict prec, size_t * restrict pn
 	
 	if ((*pnumRecs) == 0)
 	{
-		++(*pnumRecs);
+		(*pnumRecs) = 1;
+		prec[0].numEntries = 0;
 	}
 	
 	if (!mh_rec_add(&prec[(*pnumRecs) - 1], entry))
 	{
 		++(*pnumRecs);
+		prec[(*pnumRecs) - 1].numEntries = 0;
 		return mh_rec_add(&prec[(*pnumRecs) - 1], entry);
 	}
 	else
@@ -664,7 +699,7 @@ bool mh_recs_add(mh_records_t * restrict recs, const mh_data_t * restrict entry)
 	assert(recs != NULL);
 	assert(entry != NULL);
 	
-	mh_rectimer_t * restrict rectimer = &recs->rectimer;
+	mh_rectimer_t * rectimer = &recs->rectimer;
 	
 	// Resize
 	if ((recs->numRecords + 1) >= recs->maxRecords)
@@ -682,9 +717,6 @@ bool mh_recs_add(mh_records_t * restrict recs, const mh_data_t * restrict entry)
 		recs->records    = temp;
 		recs->maxRecords = tempmax;
 		
-		LeaveCriticalSection(&rectimer->critSect);
-		
-		EnterCriticalSection(&rectimer->critSect);
 		if (!recs->isCopying)
 		{
 			temp = (mh_record_t *)realloc(recs->copy, tempmax * sizeof(mh_record_t));
@@ -703,34 +735,59 @@ bool mh_recs_add(mh_records_t * restrict recs, const mh_data_t * restrict entry)
 	
 	EnterCriticalSection(&rectimer->critSect);
 	if (!recs->isCopying)
-	{
-		if (recs->numRecsInCopy != recs->numRecords)
+	{		
+		if (recs->numRecsInCopy < recs->numRecords)
 		{
-			// Move records structure
-			if (recs->numRecords > recs->numWasInCopy)
-			{
-				memmove(recs->records, &recs->records[recs->numWasInCopy], sizeof(mh_record_t) * (recs->numRecords - recs->numWasInCopy));
-				recs->numRecords -= recs->numWasInCopy;
-			}
-			else if (recs->numRecords > 0)
-			{
-				recs->records[0].numEntries = 0;
-				recs->numRecords = 0;
-			}
+			//printf("Before: numInCopy: %zu, wasInCopy: %zu, numRecs: %zu\n", recs->numRecsInCopy, recs->numWasInCopy, recs->numRecords);
+			// New records have come forward
+			// Shift recs structure
 			
-			if (recs->numRecsInCopy)
+			assert(recs->numWasInCopy > 0);
+			
+			
+			if (recs->numRecsInCopy > 0)
 			{
-				const mh_record_t * restrict prec   = &recs->copy[recs->numWasInCopy - 1];
-				const mh_data_t * restrict pentries = prec->entries;
-				for (ENTRY_SIZE_T i = 0; i < prec->numEntries; ++i)
+				const size_t numToCopy = recs->numRecords - recs->numWasInCopy;
+				if (numToCopy > 0)
 				{
-					s_addToRecs(recs->records, &recs->numRecords, &pentries[i]);
+					memmove(
+						recs->records,
+						&recs->records[recs->numWasInCopy],
+						sizeof(mh_record_t) * numToCopy
+					);
+					recs->numRecords -= recs->numWasInCopy;
+				}
+				// Add copy end to recs
+				for (size_t i = recs->numWasInCopy - recs->numRecsInCopy; (recs->numRecsInCopy > 0); ++i)
+				{
+					const mh_record_t * restrict prec   = &recs->copy[i];
+					const mh_data_t * restrict pentries = prec->entries;
+					for (ENTRY_SIZE_T j = 0; j < prec->numEntries; ++j)
+					{
+						s_addToRecs(recs->records, &recs->numRecords, &pentries[j]);
+					}
+					
+					--recs->numRecsInCopy;
 				}
 			}
-			
+			else
+			{
+				const size_t fullRecsCopied = recs->numWasInCopy - recs->numRecsInCopy;
+				if (fullRecsCopied > 0)
+				{
+					memmove(
+						recs->records,
+						&recs->records[fullRecsCopied],
+						sizeof(mh_record_t) * (recs->numRecords - fullRecsCopied)
+					);
+					recs->numRecords -= fullRecsCopied;
+				}
+			}
+						
 			// Make a copy of records structure to "copy"
 			memcpy(recs->copy, recs->records, sizeof(mh_record_t) * recs->numRecords);
 			recs->numRecsInCopy = recs->numRecords;
+			//printf("After numInCopy: %zu, numRecs: %zu\n", recs->numRecsInCopy, recs->numRecords);
 		}
 		
 		s_addToRecs(recs->copy, &recs->numRecsInCopy, entry);
@@ -746,28 +803,16 @@ bool mh_recs_todisk(mh_records_t * restrict recs, bool writeAll)
 {
 	assert(recs != NULL);
 	
-	mh_rectimer_t * restrict rectimer = &recs->rectimer;
+	mh_rectimer_t * rectimer = &recs->rectimer;
+	assert(rectimer->init);
 	
-	if (rectimer->init && (recs != NULL))
-	{
-		rectimer->writeAll = writeAll;
-		WakeAllConditionVariable(&rectimer->cv);
-		
-		if (recs->isCopying)
-		{
-			SleepConditionVariableCS(&rectimer->readycv, &rectimer->critSect, 1000);
-		}
-		if (recs->isCopying)
-		{
-			return false;
-		}
-		
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	rectimer->writeAll = writeAll;
+	WakeAllConditionVariable(&rectimer->cv);
+	LeaveCriticalSection(&rectimer->critSect);
+	
+	SleepConditionVariableCS(&rectimer->readycv, &rectimer->critSect, 10000);
+	
+	return true;
 }
 
 bool mh_statistics_create(mh_statistics_t * restrict stats, mh_records_t * restrict recs)
@@ -909,7 +954,7 @@ bool mh_statistics_load(
 				}
 			}
 		}
-		printf("%d entries\n", entry.numEntries);
+		//printf("%d entries\n", entry.numEntries);
 	}
 	
 	// Shrink statistics array to fit

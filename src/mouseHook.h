@@ -70,21 +70,21 @@ struct mh_records;
 
 typedef struct mh_rectimer
 {
-	uint16_t init:1, killThread:1, writeAll:1;
+	volatile uint16_t init:1, killThread:1, writeAll:1;
 	uint16_t errcounter:13;
 	// condition variable
 	CRITICAL_SECTION critSect;
 	CONDITION_VARIABLE cv, readycv;
 	
 	// thread
-	HANDLE hthread;
+	volatile HANDLE hthread;
 	
 	wchar * path;
 
 } mh_rectimer_t;
 
 bool mh_timer_create(struct mh_records * restrict recs, const wchar * restrict path);
-void mh_timer_destroy(struct mh_records * restrict recs);
+bool mh_timer_destroy(struct mh_records * restrict recs);
 
 #define MAX_ENTRIES_PER_RECORD 16384
 
@@ -112,7 +112,7 @@ typedef struct mh_record
 
 bool mh_rec_add(mh_record_t * restrict record, const mh_data_t * restrict entry);
 
-#define RECORDS_TIME_THRESHOLD 60.0f
+#define RECORDS_TIME_THRESHOLD 2.0f
 #define RECORDS_WRITE_ERROR_THRESHOLD 10
 
 typedef struct mh_records

@@ -413,8 +413,8 @@ void mgui_handleCommand(msdata_t * restrict This, HWND hwnd, WPARAM wp)
 				
 				// Print all information	
 				printf(
-					"Event: %hu; Pos: %ld, %ld; Wheel: %hd; Hwheel: %hd; Time: %u\n",
-					(uint16_t)it->eventType,
+					"Event: %s; Pos: %ld, %ld; Wheel: %hd; Hwheel: %hd; Time: %u\n",
+					mh_eventName(it->eventType),
 					it->cursorPos.y,
 					it->cursorPos.x,
 					it->wheelDelta,
