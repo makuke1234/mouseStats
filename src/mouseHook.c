@@ -310,7 +310,7 @@ const char * mh_eventName(mh_type_e type)
 }
 
 
-#define S_RECTIMERTHREAD_STACK_SIZE 150
+#define S_RECTIMERTHREAD_STACK_SIZE 200
 static DWORD WINAPI s_recTimerThread(LPVOID args);
 
 static inline HANDLE s_recOpenWritable(const wchar * restrict path)
@@ -321,7 +321,7 @@ static inline HANDLE s_recOpenWritable(const wchar * restrict path)
 	HANDLE hfile = CreateFileW(
 		path,
 		GENERIC_WRITE,
-		FILE_SHARE_READ,
+		0,
 		NULL,
 		OPEN_ALWAYS,
 		FILE_ATTRIBUTE_NORMAL,
@@ -362,11 +362,7 @@ static inline bool s_dataWrite(HANDLE hfile, const void * restrict data, size_t 
 	assert(hfile != INVALID_HANDLE_VALUE);
 	assert(data != NULL);
 	assert(objSize > 0);
-	
-	if (numObjects == 0)
-	{
-		return true;
-	}
+	assert(numObjects > 0);
 	
 	return ser_serialize(
 		data,
@@ -453,7 +449,7 @@ static DWORD WINAPI s_recTimerThread(LPVOID args)
 		
 		const size_t numRecstowrite = recs->numRecsInCopy - (recs->copy[recs->numRecsInCopy - 1].numEntries != MAX_ENTRIES_PER_RECORD);
 		// Write to disk
-		uint64_t writableNum = (uint64_t)(rectimer->writeAll ? recs->numRecsInCopy : numRecstowrite);
+		const uint64_t writableNum = (uint64_t)(rectimer->writeAll ? recs->numRecsInCopy : numRecstowrite);
 		
 		HANDLE hfile = s_recOpenWritable(rectimer->path);
 		if (hfile == INVALID_HANDLE_VALUE)
@@ -788,7 +784,7 @@ bool mh_statistics_create(mh_statistics_t * restrict stats, mh_records_t * restr
 	stats->records    = NULL;
 	
 	// Load data from disk
-	stats->hfile = s_recOpenWritable(recs->rectimer.path);
+	stats->hfile = s_recOpenReadable(recs->rectimer.path);
 	if (stats->hfile == INVALID_HANDLE_VALUE)
 	{
 		return false;
@@ -825,11 +821,8 @@ static inline bool s_stat_loadBlock(HANDLE hfile, uint64_t * restrict pnumBlocks
 	}
 	
 	// Read block
-	if (!s_dataRead(hfile, &entry->numEntries, sizeof(ENTRY_SIZE_T)))
-	{
-		return false;
-	}
-	if (!s_dataRead(hfile, entry->entries, entry->numEntries * sizeof(mh_data_t)))
+	if (!s_dataRead(hfile, &entry->numEntries, sizeof(ENTRY_SIZE_T)) || (entry->numEntries == 0) ||
+	    !s_dataRead(hfile, entry->entries, entry->numEntries * sizeof(mh_data_t)))
 	{
 		return false;
 	}
@@ -916,11 +909,15 @@ bool mh_statistics_load(
 				}
 			}
 		}
+		printf("%d entries\n", entry.numEntries);
 	}
 	
 	// Shrink statistics array to fit
-	mh_data_t * restrict temp = (mh_data_t *)realloc(stats->records, sizeof(mh_data_t) * stats->numRecords);
-	stats->records = (temp != NULL) ? temp : stats->records;
+	if (maxRecs > stats->numRecords)
+	{
+		mh_data_t * restrict temp = (mh_data_t *)realloc(stats->records, sizeof(mh_data_t) * stats->numRecords);
+		stats->records = (temp != NULL) ? temp : stats->records;
+	}
 	
 	return true;
 }

@@ -22,7 +22,8 @@ of creating sublime user interfaces by using borderless windows:
 * [x] DPI-aware
 * [x] Fluid design
 * [x] Automatic data logging
-* [ ] Highly customizable statistics
+* [x] Highly customizable statistics
+* [ ] Visual representation of statistics
 * [ ] Alternate log export formats
 
 # License

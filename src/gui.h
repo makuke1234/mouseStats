@@ -5,6 +5,8 @@
 
 #define MAX_TITLETEXT MAX_PATH
 
+struct msdata;
+
 LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
 
 LRESULT mgui_hitTest(HWND hwnd, POINT cursor, const RECT * restrict titleRect, bool borderless_resize, bool rclick);
@@ -13,7 +15,7 @@ void mgui_adjustMaximizedClientRect(HWND window, RECT * restrict rect);
 void mgui_calcTitleRect(HWND hwnd, RECT * restrict rect, int * restrict yBegin, int dpi);
 
 void mgui_handleContextMenu(HWND hwnd, HMENU hmenu, LPARAM lp, bool sysmenu);
-void mgui_handleCommand(HWND hwnd, WPARAM wp);
+void mgui_handleCommand(struct msdata * restrict This, HWND hwnd, WPARAM wp);
 bool mgui_handleSystemMenu(HWND hwnd, WPARAM wp);
 
 typedef struct mgui_btnBmps

@@ -65,7 +65,7 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		}
 		break;
 	case WM_COMMAND:
-		mgui_handleCommand(hwnd, wp);
+		mgui_handleCommand(This, hwnd, wp);
 		break;
 	case WM_NCRBUTTONDOWN:
 		This->rclick = true;
@@ -386,11 +386,49 @@ void mgui_handleContextMenu(HWND hwnd, HMENU hmenu, LPARAM lp, bool sysmenu)
 		SendMessageW(hwnd, WM_SYSCOMMAND, (WPARAM)cmd, 0);
 	}
 }
-void mgui_handleCommand(HWND hwnd, WPARAM wp)
+void mgui_handleCommand(msdata_t * restrict This, HWND hwnd, WPARAM wp)
 {
 	switch (LOWORD(wp))
 	{
 	case IDM_TEST:
+		{
+			// Create statistics
+			mh_statistics_t stats;
+			if (!mh_statistics_create(&stats, &This->mouseData))
+			{
+				ePrint("Error creating statistics object!\n");
+				break;
+			}
+			
+			if (!mh_statistics_loadAll(&stats))
+			{
+				ePrint("Error loading statistics from file!\n");
+				mh_statistics_destroy(&stats);
+				break;
+			}
+			
+			for (size_t i = 0; i < stats.numRecords; ++i)
+			{
+				const mh_data_t * it = &stats.records[i];
+				
+				// Print all information	
+				printf(
+					"Event: %hu; Pos: %ld, %ld; Wheel: %hd; Hwheel: %hd; Time: %u\n",
+					(uint16_t)it->eventType,
+					it->cursorPos.y,
+					it->cursorPos.x,
+					it->wheelDelta,
+					it->hwheelDelta,
+					it->timeStamp.secs
+				);
+			}
+			if (stats.numRecords == 0)
+			{
+				printf("No records.\n");
+			}
+			
+			mh_statistics_destroy(&stats);
+		}
 		MessageBoxW(hwnd, L"This is a test", L"test", MB_ICONINFORMATION | MB_OK);
 		break;
 	case IDM_MIN:

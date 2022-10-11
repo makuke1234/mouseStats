@@ -78,7 +78,7 @@ bool ser_serialize(
 			for (size_t idx = 0; idx < indexesPerObj; ++idx)
 			{
 				size_t sizeToWrite;
-				void * addrToWrite = addrRet(objBase, idx, &sizeToWrite);
+				const void * addrToWrite = addrRet(objBase, idx, &sizeToWrite);
 				assert(addrToWrite != NULL);
 				assert(sizeToWrite > 0);
 				
@@ -141,7 +141,7 @@ bool ser_deserialize(
 			// Set everything to zero
 			memset(objBase, 0, objSize);
 			
-			for (size_t idx = 0; i < indexesPerObj; ++idx)
+			for (size_t idx = 0; idx < indexesPerObj; ++idx)
 			{
 				size_t sizeToRead;
 				void * addrToRead = addrRet(objBase, idx, &sizeToRead);
