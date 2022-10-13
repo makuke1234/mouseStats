@@ -70,8 +70,7 @@ struct mh_records;
 
 typedef struct mh_rectimer
 {
-	volatile uint16_t init:1, killThread:1, writeAll:1;
-	uint16_t errcounter:13;
+	volatile uint16_t init:1, killThread:1, writeAll:1, errcounter:13;
 	// condition variable
 	CRITICAL_SECTION critSect;
 	CONDITION_VARIABLE cv, readycv;
