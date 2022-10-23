@@ -23,6 +23,7 @@ of creating sublime user interfaces by using borderless windows:
 * [x] Fluid design
 * [x] Automatic data logging
 * [x] Highly customizable statistics
+* [ ] Reponsive UI with asynchronous command processing
 * [ ] Visual representation of statistics
 * [ ] Alternate log export formats
 
