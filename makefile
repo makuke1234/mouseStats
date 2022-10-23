@@ -34,14 +34,14 @@ debug: $(DEBOBJFILES)
 	$(CC) $^ -o $(BIN)/deb$(TARGET).exe $(CDEFFLAGS) $(DebFlags) $(LIB)
 
 
-$(OBJ)/%.rc.o: $(SRC)/%.rc $(OBJ)
+$(OBJ)/%.rc.o: $(SRC)/%.rc $(OBJ) $(BIN)
 	windres -i $< -o $@ $(MACROS) -D FILE_NAME='\"$(TARGET).exe\"'
-$(OBJ)/%.rc.d.o: $(SRC)/%.rc $(OBJ)
+$(OBJ)/%.rc.d.o: $(SRC)/%.rc $(OBJ) $(BIN)
 	windres -i $< -o $@ $(MACROS) -D FILE_NAME='\"deb$(TARGET).exe\"'
 
-$(OBJ)/%.o: $(SRC)/% $(OBJ)
+$(OBJ)/%.o: $(SRC)/% $(OBJ) $(BIN)
 	$(CC) -c $< -o $@ $(CDEFFLAGS) $(RelFlags)
-$(OBJ)/%.d.o: $(SRC)/% $(OBJ)
+$(OBJ)/%.d.o: $(SRC)/% $(OBJ) $(BIN)
 	$(CC) -c $< -o $@ $(CDEFFLAGS) $(DebFlags) -fstack-usage
 
 $(OBJ):

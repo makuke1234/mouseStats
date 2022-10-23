@@ -58,7 +58,9 @@ bool ser_serialize(
 	assert(fileptr != NULL);
 	assert(fWrite != NULL);
 	
-	if (!fWrite(fileptr, &numItems, sizeof numItems))
+	const size_t itemNums[2] = { numItems, objSize };
+	
+	if (!fWrite(fileptr, itemNums, 2 * sizeof(size_t)))
 	{
 		return false;
 	}
@@ -95,7 +97,7 @@ bool ser_serialize(
 
 bool ser_deserialize(
 	void ** restrict baseaddress,
-	size_t objSize,
+	size_t * restrict pobjSize,
 	size_t indexesPerObj,
 	void * restrict fileptr,
 	ser_fileReader_t fRead,
@@ -103,22 +105,27 @@ bool ser_deserialize(
 )
 {
 	assert(baseaddress != NULL);
-	assert(objSize > 0);
+	assert(pobjSize != NULL);
 	assert(((indexesPerObj > 0) && (addrRet != NULL)) || (indexesPerObj == 0));
 	assert(fileptr != NULL);
 	assert(fRead != NULL);
 	
-	size_t numItems;
-	if (!fRead(fileptr, &numItems, sizeof numItems))
+	size_t itemNums[2];
+	if (!fRead(fileptr, &itemNums, 2 * sizeof(size_t)))
+	{
+		return false;
+	}
+	const size_t numItems = itemNums[0];
+	*pobjSize = itemNums[1];
+	
+	if (!(numItems > 0) || !((*pobjSize) > 0))
 	{
 		return false;
 	}
 	
-	assert(numItems > 0);
-	
 	if ((*baseaddress) == NULL)
 	{
-		*baseaddress = malloc(objSize * numItems);
+		*baseaddress = malloc(*pobjSize * numItems);
 		if ((*baseaddress) == NULL)
 		{
 			return false;
@@ -127,7 +134,7 @@ bool ser_deserialize(
 	
 	if (!indexesPerObj)
 	{
-		if (!fRead(fileptr, *baseaddress, objSize * numItems))
+		if (!fRead(fileptr, *baseaddress, *pobjSize * numItems))
 		{
 			return false;
 		}
@@ -136,10 +143,10 @@ bool ser_deserialize(
 	{
 		for (size_t i = 0; i < numItems; ++i)
 		{
-			void * objBase = (uint8_t *)(*baseaddress) + (i * objSize);
+			void * objBase = (uint8_t *)(*baseaddress) + (i * (*pobjSize) );
 			
 			// Set everything to zero
-			memset(objBase, 0, objSize);
+			memset(objBase, 0, *pobjSize);
 			
 			for (size_t idx = 0; idx < indexesPerObj; ++idx)
 			{

@@ -36,7 +36,7 @@ bool ser_serialize(
 
 bool ser_deserialize(
 	void ** restrict baseaddress,
-	size_t objSize,
+	size_t * restrict pobjSize,
 	size_t indexesPerObj,
 	void * restrict fileptr,
 	ser_fileReader_t fRead,

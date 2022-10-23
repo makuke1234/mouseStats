@@ -381,15 +381,15 @@ static inline bool s_dataWrite(HANDLE hfile, const void * restrict data, size_t 
 		NULL
 	);
 }
-static inline bool s_dataRead(HANDLE hfile, void * data, size_t objSize)
+static inline bool s_dataRead(HANDLE hfile, void * data, size_t * restrict pobjSize)
 {
 	assert(hfile != INVALID_HANDLE_VALUE);
 	assert(data != NULL);
-	assert(objSize > 0);
+	assert(pobjSize != NULL);
 	
 	return ser_deserialize(
 		&data,
-		objSize,
+		pobjSize,
 		0,
 		hfile,
 		&ser_winFileReader,
@@ -492,8 +492,7 @@ static DWORD WINAPI s_recTimerThread(LPVOID args)
 		for (size_t i = 0; i < numRecstowrite; ++i)
 		{
 			const mh_record_t * restrict prec = &recs->copy[i];
-			s_dataWrite(hfile, &prec->numEntries, sizeof(ENTRY_SIZE_T));
-			s_dataWrite(hfile, prec->entries, prec->numEntries * sizeof(mh_data_t));		
+			s_dataWrite(hfile, prec, sizeof(ENTRY_SIZE_T) + prec->numEntries * sizeof(mh_data_t));		
 		}
 		
 		// Shift data to front
@@ -503,8 +502,7 @@ static DWORD WINAPI s_recTimerThread(LPVOID args)
 			{
 				// Write last record to disk
 				const mh_record_t * restrict prec = &recs->copy[recs->numWasInCopy - 1];
-				s_dataWrite(hfile, &prec->numEntries, sizeof(ENTRY_SIZE_T));
-				s_dataWrite(hfile, prec->entries, prec->numEntries * sizeof(mh_data_t));
+				s_dataWrite(hfile, prec, sizeof(ENTRY_SIZE_T) + prec->numEntries * sizeof(mh_data_t));
 				
 				recs->numRecsInCopy = 0;
 			}
@@ -859,15 +857,17 @@ static inline bool s_stat_loadBlock(HANDLE hfile, uint64_t * restrict pnumBlocks
 	if ((*pnumBlocks) == 0)
 	{
 		// Read new session data
-		if (!s_dataRead(hfile, pnumBlocks, sizeof(uint64_t)))
+		size_t sz;
+		if (!s_dataRead(hfile, pnumBlocks, &sz) || (sz != sizeof(uint64_t)))
 		{
 			return false;
 		}
 	}
 	
 	// Read block
-	if (!s_dataRead(hfile, &entry->numEntries, sizeof(ENTRY_SIZE_T)) || (entry->numEntries == 0) ||
-	    !s_dataRead(hfile, entry->entries, entry->numEntries * sizeof(mh_data_t)))
+	
+	size_t sz;
+	if (!s_dataRead(hfile, entry, &sz) || (sz == 0) || (sz > sizeof(mh_record_t)) )
 	{
 		return false;
 	}
