@@ -5,6 +5,7 @@
 #include "error.h"
 #include "trayIcon.h"
 #include "mouseHook.h"
+#include "asyncCmdEngine.h"
 
 #define DEFAULT_LOG_PATH L"mouselog.bin"
 
@@ -33,6 +34,8 @@ typedef struct msdata
 	
 	wchar * logpath;
 	mh_records_t mouseData;
+	
+	ace_data_t asyncCmd;
 
 } msdata_t;
 

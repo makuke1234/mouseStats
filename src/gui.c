@@ -370,7 +370,7 @@ void mgui_calcTitleRect(HWND hwnd, RECT * restrict rect, int * restrict yBegin, 
 	rect->right  = cl.right;
 	rect->top    = cl.top;
 	rect->bottom = rect->top + MulDiv(30, dpi, 96);
-	*yBegin = rect->bottom;
+	*yBegin      = rect->bottom;
 }
 
 void mgui_handleContextMenu(HWND hwnd, HMENU hmenu, LPARAM lp, bool sysmenu)

@@ -71,11 +71,15 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 	if (This->logpath == NULL)
 	{
 		ePrint("Error allocating memory for path variable!");
+		DestroyWindow(This->hwnd);
+		ms_free(This);
 		return false;
 	}
 	if (!mh_recs_create(&This->mouseData, This->logpath))
 	{
 		ePrint("Error initializing mouse logging!");
+		DestroyWindow(This->hwnd);
+		ms_free(This);
 		return false;
 	}
 
@@ -84,7 +88,15 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 	{
 		ePrint("Error creating low-level mouse hook!");
 		DestroyWindow(This->hwnd);
-		This->hwnd = NULL;
+		ms_free(This);
+		return false;
+	}
+	
+	if (!ace_init(&This->asyncCmd))
+	{
+		ePrint("Error initializing asynchronous command engine!");
+		DestroyWindow(This->hwnd);
+		ms_free(This);
 		return false;
 	}
 
@@ -101,7 +113,7 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 	{
 		ePrint("Error creating tray icon!");
 		DestroyWindow(This->hwnd);
-		This->hwnd = NULL;
+		ms_free(This);
 		return false;
 	}
 
@@ -141,6 +153,8 @@ void ms_free(msdata_t * restrict This)
 	}
 	free(This->logpath);
 	This->logpath = NULL;
+	
+	ace_destroy(&This->asyncCmd);
 
 	This->init = false;
 }
