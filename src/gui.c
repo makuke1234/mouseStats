@@ -391,45 +391,11 @@ void mgui_handleCommand(msdata_t * restrict This, HWND hwnd, WPARAM wp)
 	switch (LOWORD(wp))
 	{
 	case IDM_TEST:
+		if (!ace_cmdAsync(&This->asyncCmd, acmd_test, This, NULL, NULL))
 		{
-			// Create statistics
-			mh_statistics_t stats;
-			if (!mh_statistics_create(&stats, &This->mouseData))
-			{
-				ePrint("Error creating statistics object!\n");
-				break;
-			}
-			
-			if (!mh_statistics_loadAll(&stats))
-			{
-				ePrint("Error loading statistics from file!\n");
-				mh_statistics_destroy(&stats);
-				break;
-			}
-			
-			for (size_t i = 0; i < stats.numRecords; ++i)
-			{
-				const mh_data_t * it = &stats.records[i];
-				
-				// Print all information	
-				printf(
-					"Event: %s; Pos: %ld, %ld; Wheel: %hd; Hwheel: %hd; Time: %u\n",
-					mh_eventName(it->eventType),
-					it->cursorPos.y,
-					it->cursorPos.x,
-					it->wheelDelta,
-					it->hwheelDelta,
-					it->timeStamp.secs
-				);
-			}
-			if (stats.numRecords == 0)
-			{
-				printf("No records.\n");
-			}
-			
-			mh_statistics_destroy(&stats);
+			ePrint("Failed to execute asynchronous command!\n");
 		}
-		MessageBoxW(hwnd, L"This is a test", L"test", MB_ICONINFORMATION | MB_OK);
+		ePrint("Done!\n");
 		break;
 	case IDM_MIN:
 		ShowWindow(hwnd, SW_MINIMIZE);

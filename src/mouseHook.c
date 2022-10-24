@@ -321,7 +321,7 @@ static inline HANDLE s_recOpenWritable(const wchar * restrict path)
 	HANDLE hfile = CreateFileW(
 		path,
 		GENERIC_WRITE,
-		0,
+		FILE_SHARE_READ,
 		NULL,
 		OPEN_ALWAYS,
 		FILE_ATTRIBUTE_NORMAL,
@@ -349,7 +349,7 @@ static inline HANDLE s_recOpenReadable(const wchar * restrict path)
 	return CreateFileW(
 		path,
 		GENERIC_READ,
-		FILE_SHARE_READ,
+		FILE_SHARE_READ | FILE_SHARE_WRITE,
 		NULL,
 		OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL,
@@ -816,22 +816,12 @@ bool mh_recs_todisk(mh_records_t * restrict recs, bool writeAll)
 bool mh_statistics_create(mh_statistics_t * restrict stats, mh_records_t * restrict recs)
 {
 	assert(stats != NULL);
-	assert(recs != NULL);
-	
-	if (!mh_recs_todisk(recs, true))
-	{
-		return false;
-	}
+	assert(recs  != NULL);
 	
 	stats->numRecords = 0;
 	stats->records    = NULL;
-	
-	// Load data from disk
-	stats->hfile = s_recOpenReadable(recs->rectimer.path);
-	if (stats->hfile == INVALID_HANDLE_VALUE)
-	{
-		return false;
-	}
+	stats->hfile      = INVALID_HANDLE_VALUE;
+	stats->recs       = recs;
 	
 	return true;
 }
@@ -840,12 +830,6 @@ void mh_statistics_destroy(mh_statistics_t * restrict stats)
 	assert(stats != NULL);
 	
 	mh_statistics_unload(stats);
-	
-	if (stats->hfile != INVALID_HANDLE_VALUE)
-	{
-		CloseHandle(stats->hfile);
-		stats->hfile = INVALID_HANDLE_VALUE;
-	}
 }
 
 static inline bool s_stat_loadBlock(HANDLE hfile, uint64_t * restrict pnumBlocks, mh_record_t * restrict entry)
@@ -914,12 +898,8 @@ bool mh_statistics_load(
 )
 {
 	assert(stats != NULL);
+	assert(stats->recs != NULL);
 	assert(stime.secs <= etime.secs);
-	
-	if (stats->hfile == INVALID_HANDLE_VALUE)
-	{
-		return false;
-	}
 	
 	// Unload old data first
 	mh_statistics_unload(stats);
@@ -928,8 +908,13 @@ bool mh_statistics_load(
 	size_t maxRecs    = 0;
 	stats->numRecords = 0;
 	
-	// Go to file begginning
-	if (SetFilePointer(stats->hfile, 0L, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+	if (!mh_recs_todisk(stats->recs, true))
+	{
+		return false;
+	}
+	// Open file
+	stats->hfile = s_recOpenReadable(stats->recs->rectimer.path);
+	if (stats->hfile == INVALID_HANDLE_VALUE)
 	{
 		return false;
 	}
@@ -950,6 +935,8 @@ bool mh_statistics_load(
 				if (!s_statsAdd(stats, &maxRecs, &entries[i]))
 				{
 					mh_statistics_unload(stats);
+					CloseHandle(stats->hfile);
+					stats->hfile = INVALID_HANDLE_VALUE;
 					return false;
 				}
 			}
@@ -963,6 +950,10 @@ bool mh_statistics_load(
 		mh_data_t * restrict temp = (mh_data_t *)realloc(stats->records, sizeof(mh_data_t) * stats->numRecords);
 		stats->records = (temp != NULL) ? temp : stats->records;
 	}
+	
+	// Close file
+	CloseHandle(stats->hfile);
+	stats->hfile = INVALID_HANDLE_VALUE;
 	
 	return true;
 }

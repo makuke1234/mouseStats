@@ -139,6 +139,8 @@ typedef struct mh_statistics
 	mh_data_t * records;
 	
 	HANDLE hfile;
+	
+	mh_records_t * recs;
 
 } mh_statistics_t;
 
