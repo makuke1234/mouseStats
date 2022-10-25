@@ -391,7 +391,7 @@ void mgui_handleCommand(msdata_t * restrict This, HWND hwnd, WPARAM wp)
 	switch (LOWORD(wp))
 	{
 	case IDM_TEST:
-		if (!ace_cmdAsync(&This->asyncCmd, acmd_test, This, NULL, NULL))
+		if (!ace_cmdAsync(&This->asyncCmd, acmd_test, This, NULL))
 		{
 			ePrint("Failed to execute asynchronous command!\n");
 		}
