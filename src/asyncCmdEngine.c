@@ -124,7 +124,7 @@ bool ace_init(ace_data_t * restrict This)
 	
 	return true;
 }
-void ace_destroy(ace_data_t * restrict This)
+void ace_destroy(ace_data_t * This)
 {
 	assert(This != NULL);
 	if (This->thread != NULL)

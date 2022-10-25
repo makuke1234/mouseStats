@@ -53,7 +53,7 @@ typedef struct ace_data
 DWORD WINAPI ace_runnerThread(LPVOID lpArgs);
 
 bool ace_init(ace_data_t * restrict This);
-void ace_destroy(ace_data_t * restrict This);
+void ace_destroy(ace_data_t * This);
 
 enum acr ace_cmdSync (ace_data_t * restrict This, enum acmd cmd, void * restrict cArg);
 bool     ace_cmdAsync(ace_data_t *          This, enum acmd cmd, void * restrict cArg, ace_callback_t cbFinish);
