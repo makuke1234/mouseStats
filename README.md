@@ -20,11 +20,13 @@ of creating sublime user interfaces by using borderless windows:
 * [x] Written in pure C
 * [x] Uses "raw" Win32 API
 * [x] DPI-aware
-* [x] Fluid design
+* [x] Fluent design
 * [x] Automatic data logging
 * [x] Highly customizable statistics
 * [ ] Reponsive UI with asynchronous command processing
 * [ ] Visual representation of statistics
+	* [ ] BMP output
+	* [ ] PNG output
 * [ ] Alternate log export formats
 
 # License
