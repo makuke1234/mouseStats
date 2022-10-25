@@ -167,6 +167,8 @@ bool ace_cmdAsync(ace_data_t * This, enum acmd cmd, void * restrict cArg, ace_ca
 	bool res = s_putq(&This->cmds, cmd, cArg, cbFinish);
 	LeaveCriticalSection(&This->critSect);
 	
+	WakeConditionVariable(&This->cvReady);
+	
 	return res;
 }
 
