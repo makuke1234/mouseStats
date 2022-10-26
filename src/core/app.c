@@ -1,7 +1,6 @@
 #include "app.h"
 #include "../resources/resource.h"
 #include "../gui/gui.h"
-#include "../gui/mouseHook.h"
 
 bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 {

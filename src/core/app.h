@@ -4,8 +4,8 @@
 #include "../common/winapi.h"
 #include "../common/error.h"
 #include "../gui/trayIcon.h"
-#include "../gui/mouseHook.h"
-#include "../gui/asyncCmdEngine.h"
+#include "mouseHook.h"
+#include "asyncCmdEngine.h"
 
 #define DEFAULT_LOG_PATH L"mouselog.bin"
 

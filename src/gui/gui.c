@@ -1,6 +1,6 @@
 #include "gui.h"
 #include "../core/app.h"
-#include "mouseHook.h"
+#include "../core/mouseHook.h"
 
 LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
