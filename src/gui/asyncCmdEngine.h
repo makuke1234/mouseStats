@@ -1,7 +1,7 @@
 #ifndef ASYNC_CMD_ENGINE_H
 #define ASYNC_CMD_ENGINE_H
 
-#include "winapi.h"
+#include "../common/winapi.h"
 #include <stdint.h>
 #include <stdbool.h>
 

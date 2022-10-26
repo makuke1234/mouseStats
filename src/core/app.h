@@ -1,11 +1,11 @@
 #ifndef APP_H
 #define APP_H
 
-#include "winapi.h"
-#include "error.h"
-#include "trayIcon.h"
-#include "mouseHook.h"
-#include "asyncCmdEngine.h"
+#include "../common/winapi.h"
+#include "../common/error.h"
+#include "../gui/trayIcon.h"
+#include "../gui/mouseHook.h"
+#include "../gui/asyncCmdEngine.h"
 
 #define DEFAULT_LOG_PATH L"mouselog.bin"
 

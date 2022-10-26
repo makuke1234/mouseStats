@@ -1,7 +1,7 @@
 #ifndef GUI_H
 #define GUI_H
 
-#include "winapi.h"
+#include "../common/winapi.h"
 
 #define MAX_TITLETEXT MAX_PATH
 

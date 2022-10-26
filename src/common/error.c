@@ -1,5 +1,23 @@
 #include "error.h"
 
+const char * restrict e_errorMessages[emsg_num_of_messages] = {
+	[eInit]         = EINIT_STR,
+	[eCreate]       = ECREATE_STR,
+	[eMemErr]       = EMEM_ERR_STR,
+	[eAsyncCmd]     = EASYNC_CMD_STR,
+	[eLogFileOpen]  = ELOGFILE_OPEN_STR,
+	[eLogFileWrite] = ELOGFILE_WRITE_STR,
+	[eDataRecord]   = EDATA_RECORD_STR,
+	
+	[exWindow]      = EXWINDOW_STR,
+	[exWindowClass] = EXWINDOW_CLASS_STR,
+	[exTrayIcon]    = EXTRAY_ICON_STR,
+	[exCmdEngine]   = EXCMD_ENGINE_STR,
+	[exMouseLog]    = EXMOUSELOG_STR,
+	[exMouseHook]   = EXMOUSEHOOK_STR,
+	[exPathVar]     = EXPATH_VAR_STR
+};
+
 int eCon(const char * restrict format, ...)
 {
 	assert(format != NULL);

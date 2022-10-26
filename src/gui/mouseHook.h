@@ -1,7 +1,7 @@
 #ifndef MOUSE_HOOK_H
 #define MOUSE_HOOK_H
 
-#include "winapi.h"
+#include "../common/winapi.h"
 
 #define WM_MOUSEHOOK_MSG WM_USER
 

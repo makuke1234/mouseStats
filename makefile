@@ -10,9 +10,11 @@ SRC=src
 OBJ=obj
 TARGET=mouseStats
 
+rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
-SRCFILES=$(wildcard $(SRC)/*.c)
-RSCFILES=$(wildcard $(SRC)/*.rc)
+
+SRCFILES=$(call rwildcard,$(SRC),*.c)
+RSCFILES=$(call rwildcard,$(SRC),*.rc)
 
 RELOBJFILES=$(SRCFILES:%.c=%.c.o)
 RELOBJFILES+=$(RSCFILES:%.rc=%.rc.o)
@@ -22,30 +24,41 @@ DEBOBJFILES=$(SRCFILES:%.c=%.c.d.o)
 DEBOBJFILES+=$(RSCFILES:%.rc=%.rc.d.o)
 DEBOBJFILES:=$(DEBOBJFILES:$(SRC)/%=$(OBJ)/%)
 
+objfolders = $(BIN) $(OBJ)
+objfolders+= $(dir $(wildcard $(SRC)/*/))
+objfolders:=$(objfolders:$(SRC)/%=$(OBJ)/%)
+
+.PHONY: all
 
 default: debug
 
 rel: release
 deb: debug
 
-release: $(RELOBJFILES)
+release: $(objfolders) release_inner
+
+debug: $(objfolders) debug_inner
+
+release_inner: $(RELOBJFILES)
 	$(CC) $^ -o $(BIN)/$(TARGET).exe $(CDEFFLAGS) $(RelFlags) $(LIB)
-debug: $(DEBOBJFILES)
+debug_inner: $(DEBOBJFILES)
 	$(CC) $^ -o $(BIN)/deb$(TARGET).exe $(CDEFFLAGS) $(DebFlags) $(LIB)
 
 
-$(OBJ)/%.rc.o: $(SRC)/%.rc $(OBJ) $(BIN)
+$(OBJ)/%.rc.o: $(SRC)/%.rc
 	windres -i $< -o $@ $(MACROS) -D FILE_NAME='\"$(TARGET).exe\"'
-$(OBJ)/%.rc.d.o: $(SRC)/%.rc $(OBJ) $(BIN)
+$(OBJ)/%.rc.d.o: $(SRC)/%.rc
 	windres -i $< -o $@ $(MACROS) -D FILE_NAME='\"deb$(TARGET).exe\"'
 
-$(OBJ)/%.o: $(SRC)/% $(OBJ) $(BIN)
+$(OBJ)/%.o: $(SRC)/%
 	$(CC) -c $< -o $@ $(CDEFFLAGS) $(RelFlags)
-$(OBJ)/%.d.o: $(SRC)/% $(OBJ) $(BIN)
+$(OBJ)/%.d.o: $(SRC)/%
 	$(CC) -c $< -o $@ $(CDEFFLAGS) $(DebFlags) -fstack-usage
 
 $(OBJ):
 	mkdir $(OBJ)
+$(OBJ)/%:
+	mkdir $@
 
 $(BIN):
 	mkdir $(BIN)

@@ -1,6 +1,6 @@
 #include "mouseHook.h"
-#include "serializer.h"
-#include "error.h"
+#include "../common/serializer.h"
+#include "../common/error.h"
 
 static HHOOK s_mh_mouseHook = NULL;
 static HWND s_mh_hwnd = NULL;
@@ -477,7 +477,7 @@ static DWORD WINAPI s_recTimerThread(LPVOID args)
 			
 			if (rectimer->errcounter == RECORDS_WRITE_ERROR_THRESHOLD)
 			{
-				ePrint("Error opening logging file to write mouse data!");
+				ePrinti(eLogFileWrite);
 			}
 			
 			rectimer->errcounter = (rectimer->errcounter + ((rectimer->errcounter <= RECORDS_WRITE_ERROR_THRESHOLD) ? 1U : 0U)) & 0x1FFF;

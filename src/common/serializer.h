@@ -1,7 +1,7 @@
 #ifndef SERIALIZER_H
 #define SERIALIZER_H
 
-#include "winapi.h"
+#include "../common/winapi.h"
 
 #define ser_serialise   ser_serialize
 #define ser_ser         ser_serialize

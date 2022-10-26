@@ -1,7 +1,7 @@
 #ifndef TRAYICON_H
 #define TRAYICON_H
 
-#include "winapi.h"
+#include "../common/winapi.h"
 
 #include <shellapi.h>
 

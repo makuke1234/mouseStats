@@ -1,5 +1,5 @@
 #include "gui.h"
-#include "app.h"
+#include "../core/app.h"
 #include "mouseHook.h"
 
 LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
@@ -49,7 +49,7 @@ LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 			// Save information to disk
 			if (!mh_recs_add(&This->mouseData, &data))
 			{
-				ePrint("Error adding record to statistics!");
+				ePrinti(eDataRecord);
 			}
 		}
 
@@ -393,9 +393,8 @@ void mgui_handleCommand(msdata_t * restrict This, HWND hwnd, WPARAM wp)
 	case IDM_TEST:
 		if (!ace_cmdAsync(&This->asyncCmd, acmd_test, This, NULL))
 		{
-			ePrint("Failed to execute asynchronous command!\n");
+			ePrinti(eAsyncCmd);
 		}
-		ePrint("Done!\n");
 		break;
 	case IDM_MIN:
 		ShowWindow(hwnd, SW_MINIMIZE);

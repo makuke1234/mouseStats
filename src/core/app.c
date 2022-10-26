@@ -1,7 +1,7 @@
 #include "app.h"
-#include "resource.h"
-#include "gui.h"
-#include "mouseHook.h"
+#include "../resources/resource.h"
+#include "../gui/gui.h"
+#include "../gui/mouseHook.h"
 
 bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 {
@@ -40,7 +40,7 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 
 	if (!ms_regClassBg(MOUSE_STATS_CLASS, &mgui_winProc, MS_DEFAULT_COLOR))
 	{
-		ePrint("Error initializing windows class!");
+		ePrint(E(eInit), E(exWindowClass));
 		return false;
 	}
 
@@ -54,7 +54,7 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 	);
 	if (This->hwnd == NULL)
 	{
-		ePrint("Error creating window!");
+		ePrint(E(eCreate), E(exWindow));
 		return false;
 	}
 
@@ -70,14 +70,14 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 	This->logpath = wcsdup(DEFAULT_LOG_PATH);
 	if (This->logpath == NULL)
 	{
-		ePrint("Error allocating memory for path variable!");
+		ePrint(E(eMemErr), E(exPathVar));
 		DestroyWindow(This->hwnd);
 		ms_free(This);
 		return false;
 	}
 	if (!mh_recs_create(&This->mouseData, This->logpath))
 	{
-		ePrint("Error initializing mouse logging!");
+		ePrint(E(eInit), E(exMouseLog));
 		DestroyWindow(This->hwnd);
 		ms_free(This);
 		return false;
@@ -86,7 +86,7 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 	This->mHook = mh_setHook(GetModuleHandleW(NULL), This->hwnd);
 	if (This->mHook == NULL)
 	{
-		ePrint("Error creating low-level mouse hook!");
+		ePrint(E(eCreate), E(exMouseHook));
 		DestroyWindow(This->hwnd);
 		ms_free(This);
 		return false;
@@ -94,7 +94,7 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 	
 	if (!ace_init(&This->asyncCmd))
 	{
-		ePrint("Error initializing asynchronous command engine!");
+		ePrint(E(eInit), E(exCmdEngine));
 		DestroyWindow(This->hwnd);
 		ms_free(This);
 		return false;
@@ -111,7 +111,7 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 		LoadIconW(GetModuleHandleW(NULL), MAKEINTRESOURCEW(IDI_APPLICATION))
 	))
 	{
-		ePrint("Error creating tray icon!");
+		ePrint(E(eCreate), E(exTrayIcon));
 		DestroyWindow(This->hwnd);
 		ms_free(This);
 		return false;
@@ -149,7 +149,7 @@ void ms_free(msdata_t * restrict This)
 	
 	if (!mh_recs_destroy(&This->mouseData))
 	{
-		ePrint("Error saving logging data to disk!");
+		ePrinti(eLogFileWrite);
 	}
 	free(This->logpath);
 	This->logpath = NULL;

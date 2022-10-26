@@ -1,7 +1,7 @@
 #ifndef BMP_H
 #define BMP_H
 
-#include "../winapi.h"
+#include "../common/winapi.h"
 
 typedef struct im_bmpHeader
 {

@@ -1,5 +1,5 @@
-#include "trayIcon.h"
-#include "resource.h"
+#include "../gui/trayIcon.h"
+#include "../resources/resource.h"
 
 static HMENU s_ti_createMenu()
 {
