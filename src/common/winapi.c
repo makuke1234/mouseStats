@@ -39,12 +39,17 @@ bool ms_isMaximized(HWND hwnd)
 	{
 		return false;
 	}
-	
+
 	return placement.showCmd == SW_MAXIMIZE;
 }
 bool ms_isActive(HWND hwnd)
 {
 	return GetForegroundWindow() == hwnd;
+}
+
+uint8_t ms_cClip(uint32_t val)
+{
+	return (uint8_t)((val > 255) ? 255 : val);
 }
 
 static int s_defaultDpi = USER_DEFAULT_SCREEN_DPI;
@@ -112,7 +117,7 @@ static pfnDrawShadowText_t  pfnDrawShadowText  = NULL;
 bool ms_initSymbols(void)
 {
 	static bool s_init = false, s_success = false;
-	
+
 	if (s_init)
 	{
 		return s_success;

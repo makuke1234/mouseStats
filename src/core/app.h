@@ -29,12 +29,12 @@ typedef struct msdata
 	HWND closeBtn, minBtn;
 
 	HWND testBtn;
-	
+
 	ti_data_t tidata;
-	
+
 	wchar * logpath;
 	mh_records_t mouseData;
-	
+
 	ace_data_t asyncCmd;
 
 } msdata_t;

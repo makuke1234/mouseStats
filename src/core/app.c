@@ -43,12 +43,13 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 		return false;
 	}
 
+	This->dpi = ms_dpi(NULL);
 	This->hwnd = CreateWindowExW(
 		0,
 		MOUSE_STATS_CLASS, MOUSE_STATS_TITLE,
 		msWS_BORDERLESS & (DWORD)(~WS_MAXIMIZEBOX),
 		CW_USEDEFAULT, CW_USEDEFAULT,
-		400, 300,
+		ms_defcdpi(MS_WND_X), ms_defcdpi(MS_WND_Y),
 		NULL, NULL, GetModuleHandleW(NULL), This
 	);
 	if (This->hwnd == NULL)
@@ -57,15 +58,49 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 		return false;
 	}
 
-	
+	RECT r;
+	if (GetWindowRect(This->hwnd, &r))
+	{
+		// Try to get window away from taskbar, if part of the window is hidden
+		RECT wa;
+		if (SystemParametersInfoW(SPI_GETWORKAREA, 0, &wa, 0))
+		{
+			const int margin = ms_defcdpi(MS_MARGIN);
+			wa.left   += margin;
+			wa.top    += margin;
+			wa.right  -= margin;
+			wa.bottom -= margin;
+
+
+			if (r.left < wa.left)
+			{
+				r.left = wa.left;
+			}
+			else if (r.right > wa.right)
+			{
+				r.left = wa.right - (r.right - r.left);
+			}
+			if (r.bottom > wa.bottom)
+			{
+				r.top = wa.bottom - (r.bottom - r.top);
+			}
+			else if (r.top < wa.top)
+			{
+				r.top = wa.top;
+			}
+			SetWindowPos(This->hwnd, NULL, r.left, r.top, 0, 0, SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOSIZE);
+		}
+	}
+
+
 	if (ms_isCompositionEnabled())
 	{
 		const MARGINS shadow_state = { 1, 1, 1, 1 };
     	DwmExtendFrameIntoClientArea(This->hwnd, &shadow_state);
 	}
-	
+
 	SetWindowPos(This->hwnd, NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE);
-	
+
 	This->logpath = wcsdup(DEFAULT_LOG_PATH);
 	if (This->logpath == NULL)
 	{
@@ -90,7 +125,7 @@ bool ms_init(msdata_t * restrict This, int argc, char ** argv)
 		ms_free(This);
 		return false;
 	}
-	
+
 	if (!ace_init(&This->asyncCmd))
 	{
 		ePrint(E(eInit), E(exCmdEngine));
@@ -145,14 +180,14 @@ void ms_free(msdata_t * restrict This)
 {
 	mh_removeHook();
 	ti_destroy(&This->tidata);
-	
+
 	if (!mh_recs_destroy(&This->mouseData))
 	{
 		ePrinti(eLogFileWrite);
 	}
 	free(This->logpath);
 	This->logpath = NULL;
-	
+
 	ace_destroy(&This->asyncCmd);
 
 	This->init = false;

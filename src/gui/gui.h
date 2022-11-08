@@ -5,6 +5,7 @@
 
 #define MAX_TITLETEXT MAX_PATH
 
+
 struct msdata;
 
 LRESULT CALLBACK mgui_winProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);

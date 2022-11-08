@@ -43,6 +43,9 @@ bool ms_isCompositionEnabled(void);
 bool ms_isMaximized(HWND hwnd);
 bool ms_isActive(HWND hwnd);
 
+// Clips color to a 8-bit value
+uint8_t ms_cClip(uint32_t val);
+
 int ms_dpi(HWND hwnd);
 int ms_hdpi(HWND hwnd, int size);
 int ms_cdpi(int dpi, int size);
