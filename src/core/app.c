@@ -168,7 +168,7 @@ void ms_loop(msdata_t * restrict This)
 		{
 			return;
 		}
-		else if (!IsDialogMessageW(This->hwnd, &msg))
+		else if ((msg.message == WM_CLOSE) || !IsDialogMessageW(This->hwnd, &msg))
 		{
 			TranslateMessage(&msg);
 			DispatchMessageW(&msg);
